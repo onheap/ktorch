@@ -1,14 +1,18 @@
-package core
+package core.value
 
 import kotlin.math.pow
 
 // inspired by https://github.com/karpathy/micrograd/blob/master/micrograd/engine.py
 data class Value(
-    val data: Double,
+    var data: Double,
     var grad: Double = 0.0,
     var _prev: Set<Value> = setOf(),
     var _backward: (Value) -> Unit = {},
 ) {
+
+    override fun toString(): String {
+        return "Value(data=$data, grad=$grad)"
+    }
     operator fun plus(other: Value): Value {
         return Value(data + other.data, _prev = setOf(this, other), _backward = {
             this.grad += it.grad
