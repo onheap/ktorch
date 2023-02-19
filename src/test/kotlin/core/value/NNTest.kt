@@ -134,10 +134,7 @@ internal class NNTest {
             // # svm "max-margin" loss
             // losses = [(1 + -yi*scorei).relu() for yi, scorei in zip(yb, scores)]
             // data_loss = sum(losses) * (1.0 / len(losses))
-            val losses = yb.zip(scores).map {
-                val (yi, scorei) = it
-                (1 + -yi * scorei).relu()
-            }
+            val losses = yb.zip(scores).map { (yi, scorei) -> (1 + -yi * scorei).relu() }
             val dataLoss = losses.reduce { acc, value -> acc + value } * (1.0 / losses.size)
 
 
@@ -153,10 +150,7 @@ internal class NNTest {
             // # also get accuracy
             // accuracy = [(yi > 0) == (scorei.data > 0) for yi, scorei in zip(yb, scores)]
             // return total_loss, sum(accuracy) / len(accuracy)
-            val accuracy = yb.zip(scores).map {
-                val (yi, scorei) = it
-                if ((yi > 0) == (scorei.data > 0)) 1 else 0
-            }
+            val accuracy = (yb zip scores).map { (yi, scorei) -> if ((yi > 0) == (scorei.data > 0)) 1 else 0 }
 
             return totalLoss to accuracy.sum() / accuracy.size.toDouble()
         }
