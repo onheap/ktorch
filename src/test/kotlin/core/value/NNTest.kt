@@ -126,6 +126,7 @@ internal class NNTest {
 
             // inputs = [list(map(Value, xrow)) for xrow in Xb]
             val inputs = Xb.map { listOf(Value(it.first()), Value(it.last())) }
+//            val inputs = Xb.map { xRow -> xRow.map { Value(it) } }
 
             // # forward the model to get scores,
             // scores = list(map(model, inputs))
@@ -134,8 +135,8 @@ internal class NNTest {
             // # svm "max-margin" loss
             // losses = [(1 + -yi*scorei).relu() for yi, scorei in zip(yb, scores)]
             // data_loss = sum(losses) * (1.0 / len(losses))
-            val losses = yb.zip(scores).map { (yi, scorei) -> (1 + -yi * scorei).relu() }
-            val dataLoss = losses.reduce { acc, value -> acc + value } * (1.0 / losses.size)
+            val losses = (yb zip scores).map { (yi, scorei) -> (1 + -yi * scorei).relu() }
+            val dataLoss = losses.sum() * (1.0 / losses.size)
 
 
             // # L2 regularization
@@ -144,7 +145,7 @@ internal class NNTest {
             // total_loss = data_loss + reg_loss
 
             val alpha = 1e-4
-            val regLoss = alpha * model.parameters().map { p -> p * p }.reduce { acc, value -> acc + value }
+            val regLoss = alpha * model.parameters().map { p -> p * p }.sum()
             val totalLoss = dataLoss + regLoss
 
             // # also get accuracy
@@ -166,8 +167,8 @@ internal class NNTest {
 
                 // update (sgd)
                 val learningRate = 1.0 - 0.9 * k / generation
-                model.parameters().forEach {
-                    it.data -= learningRate * it.grad
+                model.parameters().forEach { p ->
+                    p.data -= learningRate * p.grad
                 }
 
                 println("step $k loss ${totalLoss.data}, accuracy ${acc * 100}%")

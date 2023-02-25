@@ -95,3 +95,13 @@ operator fun Value.minus(other: Int) = this.minus(Value(other.toDouble()))
 operator fun Value.times(other: Int) = this.times(Value(other.toDouble()))
 operator fun Value.div(other: Int) = this.div(Value(other.toDouble()))
 fun Value.pow(other: Int) = this.pow(other.toDouble())
+
+fun List<Value>.sum():Value {
+    var res = Value(0.0)
+    for (v in this) {
+        res += v
+    }
+    return res
+
+//    return this.reduce { acc, value -> acc + value }
+}

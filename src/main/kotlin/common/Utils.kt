@@ -13,7 +13,5 @@ class Utils {
 //        val xTest: Matrix<Double>,
 //        val yTest: Matrix<Double>,
 //    )
-
-    val sumValues: (Value, Value) -> Value = { acc, value -> acc + value }
 }
 
