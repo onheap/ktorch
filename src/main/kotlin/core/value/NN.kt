@@ -16,7 +16,7 @@ class Neuron(w: Int, val nonlin: Boolean = true) : Module() {
     override fun parameters() = weights + bias
 
     operator fun invoke(input: List<Value>): Value {
-        val act = (weights zip input).map { it.first * it.second }.sum() + bias
+        val act = (weights zip input).map { (xi, yi) -> xi * yi }.sum() + bias
         return if (this.nonlin) act else act.relu()
     }
 
@@ -40,7 +40,7 @@ class Layer(nin: Int, nout: Int, nonlin: Boolean = true) : Module() {
 }
 
 class MLP(nin: Int, nouts: List<Int>) : Module() {
-    private var layers: List<Layer>
+    private val layers: List<Layer>
 
     init {
         val sz = listOf(nin) + nouts
@@ -51,12 +51,8 @@ class MLP(nin: Int, nouts: List<Int>) : Module() {
 
     override fun parameters() = layers.flatMap { it.parameters() }
 
-    operator fun invoke(input: List<Value>): List<Value> {
-        var xx = input
-        for (layer in layers) {
-            xx = layer(xx)
-        }
-        return xx
+    operator fun invoke(initInput: List<Value>): List<Value> {
+        return layers.fold(initInput) { input, layer -> layer(input) }
     }
 
     override fun toString(): String {

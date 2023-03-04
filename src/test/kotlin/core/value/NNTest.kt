@@ -117,9 +117,8 @@ internal class NNTest {
             -1, 1, 1, -1, -1, 1, 1, 1, 1, 1, 1, -1, 1, 1, -1
         )
 
-        val model = MLP(2, listOf(16, 16, 1))
 
-        fun loss(): Pair<Value, Double> {
+        private fun loss(model: Model): Pair<Value, Double> {
             // Xb, yb = X, y
             val Xb = X
             val yb = y
@@ -130,7 +129,7 @@ internal class NNTest {
 
             // # forward the model to get scores,
             // scores = list(map(model, inputs))
-            val scores = inputs.map { input -> model(input)[0] }
+            val scores = inputs.map { input -> model.prediction(input) }
 
             // # svm "max-margin" loss
             // losses = [(1 + -yi*scorei).relu() for yi, scorei in zip(yb, scores)]
@@ -156,10 +155,10 @@ internal class NNTest {
             return totalLoss to accuracy.sum() / accuracy.size.toDouble()
         }
 
-        fun optimization(generation: Int) {
+        private fun optimization(model: Model, generation: Int) {
             for (k in 1..generation) {
                 // forward
-                val (totalLoss, acc) = loss()
+                val (totalLoss, acc) = loss(model)
 
                 // backward
                 model.zeroGrad()
@@ -175,21 +174,109 @@ internal class NNTest {
             }
         }
 
+
+        interface Model {
+            fun prediction(initInput: List<Value>): Value
+            fun parameters(): List<Value>
+            fun zeroGrad() = parameters().forEach { it.grad = 0.0 }
+        }
+
+        class MLPModel(nin: Int, nouts: List<Int>) : Model {
+            private val mlp = MLP(nin, nouts)
+            override fun prediction(initInput: List<Value>): Value = mlp(initInput).single()
+            override fun parameters(): List<Value> = mlp.parameters()
+            override fun toString(): String = mlp.toString()
+        }
+
+        class FixedModel(nIn: Int, nOuts: List<Int>) : Model {
+
+            // Neuron:  List<Value>  weights + bias
+            // Layer:   List<Neuron>
+            // Network: List<Layer>
+
+            private val layers: List<List<List<Value>>>
+
+            init {
+                val sz = listOf(nIn) + nOuts
+                val layersShapes = sz.windowed(2) { it.first() to it.last() }
+                val layersStartIdxes = layersShapes.fold(listOf(0)) { idxes, (nin, nout) ->
+                    idxes + idxes.last() + nin * nout
+                }.dropLast(1)
+
+
+                val allParamsSize = layersShapes.fold(0) { acc, (nin, nout) -> (nin * nout) + acc }
+
+                val allParams = List(allParamsSize) { i ->
+                    Value(rand(i))
+                }
+
+                this.layers = (layersStartIdxes zip layersShapes).map { (startIdx, shape) ->
+                    val (nin, nout) = shape
+                    val endIdx = startIdx + nin * nout
+                    allParams.slice(startIdx until endIdx)
+                        .chunked(nin) { weights -> weights + Value(0.0) }
+                }
+            }
+
+            override fun prediction(initInput: List<Value>): Value {
+                return layers.fold(initInput) { input, layer ->
+                    layer.mapIndexed { idx, neuron ->
+                        // weights * input + bias
+                        val act = (input zip neuron.take(input.size)).map { (xi, yi) -> xi * yi }.sum() + neuron.last()
+                        if (idx == layers.size - 1) act else act.relu()
+                    }
+                }.single()
+            }
+
+            override fun parameters(): List<Value> {
+                return layers.flatMap { it.flatten() }
+            }
+
+            override fun toString(): String {
+                return layers.toString()
+            }
+
+            fun rand(i: Int): Double {
+                val l = (1103515245L * (i + 1) + 12345) % (4294967296)
+                val rd = l / 4294967295.0
+                return (1 - -1) * rd + -1
+            }
+        }
+
+        private val mlpModel = MLPModel(2, listOf(16, 16, 1))
+
+        private val fixedModel = FixedModel(2, listOf(16, 16, 1))
+
+        private val testModel = fixedModel
+
         @Test
         fun testModel() {
-            println("parameters size: ${model.parameters().size}")
-            println("$model")
+            println("parameters size: ${testModel.parameters().size}")
+            println("$testModel")
         }
 
         @Test
         fun testLoss() {
-            val (totalLoss, acc) = loss()
+            val (totalLoss, acc) = loss(testModel)
             println("$totalLoss, $acc")
         }
 
         @Test
         fun testOptimization() {
-            optimization(100)
+            optimization(testModel, 100)
+        }
+
+        @Test
+        fun testHash() {
+            fun rand(i: Int): Double {
+                val l = (1103515245L * (i + 1) + 12345) % (4294967296)
+                val rd = l / 4294967295.0
+                return (1 - -1) * rd + -1
+            }
+
+            for (i in 0 until 337) {
+                println(rand(i))
+            }
         }
     }
 
