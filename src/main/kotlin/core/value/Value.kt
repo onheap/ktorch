@@ -13,6 +13,7 @@ data class Value(
     override fun toString(): String {
         return "Value(data=$data, grad=$grad)"
     }
+
     operator fun plus(other: Value): Value {
         return Value(data + other.data, _prev = setOf(this, other), _backward = {
             this.grad += it.grad
@@ -96,12 +97,5 @@ operator fun Value.times(other: Int) = this.times(Value(other.toDouble()))
 operator fun Value.div(other: Int) = this.div(Value(other.toDouble()))
 fun Value.pow(other: Int) = this.pow(other.toDouble())
 
-fun List<Value>.sum():Value {
-    var res = Value(0.0)
-    for (v in this) {
-        res += v
-    }
-    return res
+fun List<Value>.sum(): Value = this.reduce { acc, value -> acc + value }
 
-//    return this.reduce { acc, value -> acc + value }
-}

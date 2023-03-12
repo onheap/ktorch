@@ -2,11 +2,10 @@ package core.value
 
 import kotlin.random.Random
 
-
+// https://github.com/karpathy/micrograd/blob/master/micrograd/nn.py
 abstract class Module {
-    fun zeroGrad() = parameters().forEach { it.grad = 0.0 }
-
     abstract fun parameters(): List<Value>
+    fun zeroGrad() = parameters().forEach { it.grad = 0.0 }
 }
 
 class Neuron(w: Int, val nonlin: Boolean = true) : Module() {
