@@ -1,7 +1,6 @@
 package core.value
 
 import org.junit.jupiter.api.Test
-import kotlin.math.ln
 
 // https://github.com/karpathy/micrograd/blob/master/demo.ipynb
 internal class NNTest {
@@ -219,9 +218,7 @@ internal class NNTest {
                     layer.map {  neuron ->
                         // weights * input + bias
                         val act = (input zip neuron.take(input.size)).map { (xi, yi) -> xi * yi }.sum() + neuron.last()
-                        val res =  if (layerIdx == layers.size - 1) act else act.relu()
-//                        println("act: ${act.data} --- res: ${res.data}")
-                        res
+                        if (layerIdx == layers.size - 1) act else act.relu()
                     }
                 }.single()
             }
@@ -237,9 +234,7 @@ internal class NNTest {
             fun rand(i: Int): Double {
                 val l = (1103515245L * (i + 1) + 12345) % (4294967296)
                 val rd = l / 4294967295.0
-                val r = (1 - -1) * rd + -1
-//                println(r)
-                return r
+                return (1 - -1) * rd + -1
             }
         }
 
@@ -247,16 +242,12 @@ internal class NNTest {
 
         private val fixedModel = FixedModel(2, listOf(16, 16, 1))
 
-        private val testModel = fixedModel
+        private val testModel = mlpModel
 
         @Test
         fun testModel() {
             println("parameters size: ${testModel.parameters().size}")
             println("$testModel")
-//            testModel.parameters().forEach{
-//                if (it.data == 0.0) println(0) else println(it.data)
-//
-//            }
         }
 
         @Test
@@ -269,7 +260,6 @@ internal class NNTest {
         fun testOptimization() {
             optimization(testModel, 100)
         }
-
 
 
         @Test

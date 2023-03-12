@@ -17,7 +17,7 @@ class Neuron(w: Int, val nonlin: Boolean = true) : Module() {
 
     operator fun invoke(input: List<Value>): Value {
         val act = (weights zip input).map { (xi, yi) -> xi * yi }.sum() + bias
-        return if (this.nonlin) act else act.relu()
+        return if (this.nonlin) act.relu() else act
     }
 
     override fun toString(): String {
