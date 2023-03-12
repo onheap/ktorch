@@ -174,12 +174,12 @@ internal class ModelTest {
             }
         }
 
-        class MLPModel(val mlp: MLP) : Model {
-            override fun prediction(initInput: List<Value>): Value = mlp(initInput).single()
-            override fun parameters(): List<Value> = mlp.parameters()
+        private val mlpModel = MLP(2, listOf(16, 16, 1)).let { mlp ->
+            object : Model {
+                override fun parameters(): List<Value> = mlp.parameters()
+                override fun prediction(initInput: List<Value>): Value = mlp(initInput).single()
+            }
         }
-
-        private val mlpModel = MLPModel(MLP(2, listOf(16, 16, 1)))
 
         private val fixedModel = RawModel(2, listOf(16, 16, 1))
 
