@@ -1,6 +1,7 @@
 package core.value
 
 import org.junit.jupiter.api.Test
+import kotlin.math.ln
 
 // https://github.com/karpathy/micrograd/blob/master/demo.ipynb
 internal class NNTest {
@@ -156,7 +157,7 @@ internal class NNTest {
         }
 
         private fun optimization(model: Model, generation: Int) {
-            for (k in 1..generation) {
+            for (k in 0 until generation) {
                 // forward
                 val (totalLoss, acc) = loss(model)
 
@@ -199,31 +200,28 @@ internal class NNTest {
             init {
                 val sz = listOf(nIn) + nOuts
                 val layersShapes = sz.windowed(2) { it.first() to it.last() }
-                val layersStartIdxes = layersShapes.fold(listOf(0)) { idxes, (nin, nout) ->
-                    idxes + idxes.last() + nin * nout
-                }.dropLast(1)
-
-
-                val allParamsSize = layersShapes.fold(0) { acc, (nin, nout) -> (nin * nout) + acc }
-
-                val allParams = List(allParamsSize) { i ->
-                    Value(rand(i))
+                val layersIndexes = layersShapes.fold(listOf(0)) { idxes, (nin, nout) ->
+                    idxes + (idxes.last() + nin * nout)
                 }
 
-                this.layers = (layersStartIdxes zip layersShapes).map { (startIdx, shape) ->
-                    val (nin, nout) = shape
-                    val endIdx = startIdx + nin * nout
+                val allParams = List(layersIndexes.last()) { i -> Value(rand(i)) }
+
+                this.layers = layersShapes.mapIndexed { idx, (nin, nout) ->
+                    val startIdx = layersIndexes[idx]
+                    val endIdx = layersIndexes[idx+1]
                     allParams.slice(startIdx until endIdx)
                         .chunked(nin) { weights -> weights + Value(0.0) }
                 }
             }
 
             override fun prediction(initInput: List<Value>): Value {
-                return layers.fold(initInput) { input, layer ->
-                    layer.mapIndexed { idx, neuron ->
+                return layers.foldIndexed(initInput) { layerIdx, input, layer ->
+                    layer.map {  neuron ->
                         // weights * input + bias
                         val act = (input zip neuron.take(input.size)).map { (xi, yi) -> xi * yi }.sum() + neuron.last()
-                        if (idx == layers.size - 1) act else act.relu()
+                        val res =  if (layerIdx == layers.size - 1) act else act.relu()
+//                        println("act: ${act.data} --- res: ${res.data}")
+                        res
                     }
                 }.single()
             }
@@ -239,7 +237,9 @@ internal class NNTest {
             fun rand(i: Int): Double {
                 val l = (1103515245L * (i + 1) + 12345) % (4294967296)
                 val rd = l / 4294967295.0
-                return (1 - -1) * rd + -1
+                val r = (1 - -1) * rd + -1
+//                println(r)
+                return r
             }
         }
 
@@ -253,6 +253,10 @@ internal class NNTest {
         fun testModel() {
             println("parameters size: ${testModel.parameters().size}")
             println("$testModel")
+//            testModel.parameters().forEach{
+//                if (it.data == 0.0) println(0) else println(it.data)
+//
+//            }
         }
 
         @Test
@@ -265,6 +269,8 @@ internal class NNTest {
         fun testOptimization() {
             optimization(testModel, 100)
         }
+
+
 
         @Test
         fun testHash() {
