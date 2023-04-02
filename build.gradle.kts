@@ -23,7 +23,8 @@ tasks.test {
 }
 
 tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "1.8"
+    kotlinOptions.jvmTarget = "17"
+    kotlinOptions.freeCompilerArgs = listOf("--add-modules", "jdk.incubator.vector")
 }
 
 application {

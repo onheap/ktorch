@@ -1,20 +1,15 @@
-package core.tensor
+interface Tensor {
+    fun getShape(): IntArray
 
-import org.jetbrains.kotlinx.multik.api.mk
-import org.jetbrains.kotlinx.multik.api.ndarray
-import org.jetbrains.kotlinx.multik.ndarray.data.D1Array
-import org.jetbrains.kotlinx.multik.ndarray.data.D2Array
-import org.jetbrains.kotlinx.multik.ndarray.data.NDArray
-import org.jetbrains.kotlinx.multik.ndarray.operations.times
+    fun getStrides(): IntArray
 
-// inspired by https://github.com/geohot/tinygrad/blob/master/tinygrad/tensor.py
-// https://github.com/geohot/tinygrad/blob/91a352a8e2697828a4b1eafa2bdc1a9a3b7deffa/tinygrad/tensor.py
+    fun numel(): Int
 
-typealias Matrix = D2Array<Float>
+    fun view(vararg shape: Int): Tensor
 
-class Tensor(
-    var data: Matrix,
-    var grad: Matrix?,
-) {
+    fun flatten(dimension: Int): Tensor
 
+    fun exp(): Tensor
+
+    fun add(x: Tensor): Tensor
 }
