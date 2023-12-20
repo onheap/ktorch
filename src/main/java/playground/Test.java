@@ -1,4 +1,4 @@
-package core;
+package playground;
 
 import jdk.incubator.vector.IntVector;
 import jdk.incubator.vector.VectorSpecies;

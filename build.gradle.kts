@@ -1,6 +1,13 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
 plugins {
+    java
     kotlin("jvm") version "1.8.10"
     application
 }
@@ -19,12 +26,21 @@ dependencies {
 }
 
 tasks.test {
+    jvmArgs(listOf("--add-modules", "jdk.incubator.vector"))
     useJUnitPlatform()
 }
 
 tasks.withType<KotlinCompile> {
     kotlinOptions.jvmTarget = "17"
-    kotlinOptions.freeCompilerArgs = listOf("--add-modules", "jdk.incubator.vector")
+    kotlinOptions.freeCompilerArgs = listOf("-Xadd-modules=jdk.incubator.vector")
+}
+
+tasks.withType<JavaCompile> {
+    options.compilerArgs.addAll(listOf("--add-modules", "jdk.incubator.vector"))
+}
+
+tasks.withType<JavaExec> {
+    jvmArgs(listOf("--add-modules", "jdk.incubator.vector"))
 }
 
 application {
