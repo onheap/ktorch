@@ -60,7 +60,7 @@ class JvmTensor(
         val res = JvmTensor(shape)
 
 
-
+        return res
     }
 
 

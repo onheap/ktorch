@@ -1,57 +1,9 @@
-import org.jetbrains.kotlinx.multik.api.linalg.dot
-import org.jetbrains.kotlinx.multik.api.mk
-import org.jetbrains.kotlinx.multik.api.rand
-import kotlin.system.measureNanoTime
+import core.benchmark.Benchmark
 
 fun main(args: Array<String>) {
-    calFlopsMultik()
+    val benchmark = Benchmark()
+    benchmark.calFlopsMultik()
+//    benchmark.calFlopsNDArraySimple()
+//    benchmark.calFlopsNDArrayVector()
+    benchmark.calFlopsNDArrayVectorConcurrent()
 }
-
-
-fun calFlopsVector() {
-    fun fmt(double: Double): String = String.format("%.2f", double)
-
-    val N = 1 shl 14  // 16384
-
-    // N^2
-    val A = mk.rand<Float>(N, N)
-    // N^2
-    val B = mk.rand<Float>(N, N)
-
-    // N^2 output with 2N compute each
-    // float operation
-    val flop = N * N * 2L * N
-    println("${fmt(flop / 1e9)} GFLOP")
-
-
-    val nanos = measureNanoTime {
-        A dot B
-    }.toDouble()
-
-
-    println("${fmt(flop / nanos)} GFLOP/s")
-}
-
-fun calFlopsMultik() {
-    val N = 1 shl 14  // 16384
-
-    // N^2
-    val A = mk.rand<Float>(N, N)
-    // N^2
-    val B = mk.rand<Float>(N, N)
-
-    // N^2 output with 2N compute each
-    // float operation
-    val flop = N * N * 2L * N
-    println("${fmt(flop / 1e9)} GFLOP")
-
-
-    val nanos = measureNanoTime {
-        A dot B
-    }.toDouble()
-
-
-    println("${fmt(flop / nanos)} GFLOP/s")
-}
-
-fun fmt(double: Double): String = String.format("%.2f", double)
