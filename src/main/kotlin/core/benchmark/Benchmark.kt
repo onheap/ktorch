@@ -4,86 +4,142 @@ import org.jetbrains.kotlinx.multik.api.linalg.dot
 import org.jetbrains.kotlinx.multik.api.mk
 import org.jetbrains.kotlinx.multik.api.rand
 import playground.NDArray
+import kotlin.math.sqrt
 import kotlin.random.Random
 import kotlin.system.measureNanoTime
 
-class Benchmark {
-//    val N = 1024
-    val N = 4096
-//    val N = 8192
-//    val N = 16384
-//    val N = 25000
+class Benchmark(val N: Int) {
 
     private fun fmt(double: Double): String = String.format("%.2f", double)
 
     private fun getFLOP(): Long = N * N * 2L * N
+    private fun avgMatrixSize(params: Int, layers: Int): Int {
+        return sqrt(params.toDouble() / layers).toInt()
+    }
 
-    fun calFlopsMultik() {
-        // N^2
-        val A = mk.rand<Float>(N, N)
-        // N^2
-        val B = mk.rand<Float>(N, N)
-
-        // N^2 output with 2N compute each
-        // float operation
+    fun info() {
         val flop = getFLOP()
-        println("== Multik ==")
-        println("${fmt(flop / 1e9)} GFLOP")
+        println("== Info ==")
+        println("Matrix size: $N X $N")
+        println("Total FLOPs ${fmt(flop / 1e9)} GFLOP")
+    }
 
+    fun MK_Matmul() {
+        val A = mk.rand<Float>(N, N)
+        val B = mk.rand<Float>(N, N)
 
         val nanos = measureNanoTime {
             A dot B
         }.toDouble()
 
 
-        println("${fmt(flop / nanos)} GFLOP/s")
+        println("Multik Matmul a @ b ${fmt(getFLOP() / nanos)} GFLOP/s")
     }
 
-    fun calFlopsNDArraySimple() {
+    fun NDArray_Matmul() {
         val A = NDArray(intArrayOf(N, N), FloatArray(N * N) { Random.nextFloat() })
         val B = NDArray(intArrayOf(N, N), FloatArray(N * N) { Random.nextFloat() })
 
-        val flop = getFLOP()
-        println("== NDArraySimple ==")
-        println("${fmt(flop / 1e9)} GFLOP")
-
-
         val nanos = measureNanoTime {
-            A.matMulSimple(B)
+            A.matmul(B)
         }.toDouble()
 
-        println("${fmt(flop / nanos)} GFLOP/s")
+        println("NDArray Matmul a @ b ${fmt(getFLOP() / nanos)} GFLOP/s")
     }
 
-    fun calFlopsNDArrayVector() {
+    fun MK_Matmul_ABT() {
+        val A = mk.rand<Float>(N, N)
+        val B = mk.rand<Float>(N, N).transpose()
+
+        val nanos = measureNanoTime {
+            A dot B
+        }.toDouble()
+
+
+        println("Multik Matmul a @ b.T ${fmt(getFLOP() / nanos)} GFLOP/s")
+    }
+
+    fun NDArray_Matmul_ABT() {
         val A = NDArray(intArrayOf(N, N), FloatArray(N * N) { Random.nextFloat() })
+        val B = NDArray(intArrayOf(N, N), FloatArray(N * N) { Random.nextFloat() }).transpose()
+
+        val nanos = measureNanoTime {
+            A.matmul(B)
+        }.toDouble()
+
+        println("NDArray Matmul a @ b.T ${fmt(getFLOP() / nanos)} GFLOP/s")
+    }
+
+    fun MK_Matmul_ATB() {
+        val A = mk.rand<Float>(N, N).transpose()
+        val B = mk.rand<Float>(N, N)
+
+        val nanos = measureNanoTime {
+            A dot B
+        }.toDouble()
+
+
+        println("Multik Matmul a.T @ b ${fmt(getFLOP() / nanos)} GFLOP/s")
+    }
+
+    fun NDArray_Matmul_ATB() {
+        val A = NDArray(intArrayOf(N, N), FloatArray(N * N) { Random.nextFloat() }).transpose()
         val B = NDArray(intArrayOf(N, N), FloatArray(N * N) { Random.nextFloat() })
 
-        val flop = getFLOP()
-        println("== NDArrayVector ==")
-        println("${fmt(flop / 1e9)} GFLOP")
-
-
         val nanos = measureNanoTime {
-            A.matMulVector(B)
+            A.matmul(B)
         }.toDouble()
 
-        println("${fmt(flop / nanos)} GFLOP/s")
+        println("NDArray Matmul a.T @ b ${fmt(getFLOP() / nanos)} GFLOP/s")
     }
 
-    fun calFlopsNDArrayVectorConcurrent() {
-        val A = NDArray(intArrayOf(N, N), FloatArray(N * N) { Random.nextFloat() })
-        val B = NDArray(intArrayOf(N, N), FloatArray(N * N) { Random.nextFloat() })
-
-        val flop = getFLOP()
-        println("== NDArrayVector ==")
-        println("${fmt(flop / 1e9)} GFLOP")
-
+    fun MK_Matmul_ATBT() {
+        val A = mk.rand<Float>(N, N).transpose()
+        val B = mk.rand<Float>(N, N).transpose()
 
         val nanos = measureNanoTime {
-            A.matMulVectorConcurrent(B)
+            A dot B
         }.toDouble()
 
-        println("${fmt(flop / nanos)} GFLOP/s")
+
+        println("Multik Matmul a.T @ b.T ${fmt(getFLOP() / nanos)} GFLOP/s")
     }
+
+    fun NDArray_Matmul_ATBT() {
+        val A = NDArray(intArrayOf(N, N), FloatArray(N * N) { Random.nextFloat() }).transpose()
+        val B = NDArray(intArrayOf(N, N), FloatArray(N * N) { Random.nextFloat() }).transpose()
+
+        val nanos = measureNanoTime {
+            A.matmul(B)
+        }.toDouble()
+
+        println("NDArray Matmul a.T @ b.T ${fmt(getFLOP() / nanos)} GFLOP/s")
+    }
+}
+
+fun main(args: Array<String>) {
+//    val N = 1024
+//    val N = 4096
+//    val N = 7365
+//    val N = 8192
+//    val N = 16384
+//    val N = 25000
+
+    val benchmark = Benchmark(4096)
+    benchmark.info()
+    println("\n== a @ b ==")
+    benchmark.MK_Matmul()
+    benchmark.NDArray_Matmul()
+
+    println("\n== a @ b.T ==")
+    benchmark.MK_Matmul_ABT()
+    benchmark.NDArray_Matmul_ABT()
+
+    println("\n== a.T @ b ==")
+    benchmark.MK_Matmul_ATB()
+    benchmark.NDArray_Matmul_ATB()
+
+    println("\n== a.T @ b.T ==")
+    benchmark.MK_Matmul_ATBT()
+    benchmark.NDArray_Matmul_ATBT()
 }

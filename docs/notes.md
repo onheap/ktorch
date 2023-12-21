@@ -45,6 +45,8 @@ Implement Numpy _Broadcasting_ and _Dot Product_ in pure Java/Kotlin, and use SI
 * https://www.elastic.co/blog/accelerating-vector-search-simd-instructions
 * Whether we need to use _Virtual Thread_ to parallelize Matrix Multiplication? Answer is NO. Virtual Thread is more suitable for I/O bound tasks. And Matrix Multiplication is a CPU bound task.  [ref](https://www.reddit.com/r/java/comments/16mkm4v/efficiency_of_java_21_virtual_threads_compared_to/)
 * https://github.com/lessthanoptimal/VectorPerformance/blob/master/src/main/java/benchmark/MatrixMultiplication.java
+* https://github.com/openjdk/jdk/pull/15338
+* https://www.baeldung.com/jvm-tiered-compilation
 
 
 ## Implement Simple NN
