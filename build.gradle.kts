@@ -10,6 +10,7 @@ plugins {
     java
     kotlin("jvm") version "1.8.10"
     application
+    id("me.champeau.jmh") version "0.7.2"
 }
 
 group = "org.onheap"
@@ -30,6 +31,7 @@ tasks.test {
     useJUnitPlatform()
 }
 
+
 tasks.withType<KotlinCompile> {
     kotlinOptions.jvmTarget = "17"
     kotlinOptions.freeCompilerArgs = listOf("-Xadd-modules=jdk.incubator.vector")
@@ -42,6 +44,21 @@ tasks.withType<JavaCompile> {
 tasks.withType<JavaExec> {
     jvmArgs(listOf("--add-modules", "jdk.incubator.vector"))
 }
+
+// == Benchmark configs start ==
+jmh {
+    warmupIterations.set(3)   // Default is 10
+    iterations.set(5)         // Default is 10
+//    warmup.set("10s")      // Default is '10 s'
+//    timeOnIteration.set("10s")  // Default is '10 s'
+}
+
+tasks.jmhRunBytecodeGenerator {
+    jvmArgs.addAll("--add-modules=jdk.incubator.vector")
+}
+
+// == Benchmark configs end ==
+
 
 application {
     mainClass.set("MainKt")

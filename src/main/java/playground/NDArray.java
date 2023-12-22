@@ -15,8 +15,8 @@ import static playground.Util.*;
 @SuppressWarnings("Duplicates")
 // https://github.com/tinygrad/tinygrad/blob/91a352a8e2697828a4b1eafa2bdc1a9a3b7deffa/tinygrad/tensor.py
 public class NDArray {
-    static final VectorSpecies<Float> SPECIES = FloatVector.SPECIES_PREFERRED;
-    static final int SPECIES_LEN = SPECIES.length();
+    private static final VectorSpecies<Float> SPECIES = FloatVector.SPECIES_PREFERRED;
+    private static final int SPECIES_LEN = SPECIES.length();
 
     float[] data;
     int[] shape;
@@ -159,10 +159,12 @@ public class NDArray {
 
 
                 int j = 0;
+                var va = FloatVector.broadcast(SPECIES, valA);
                 for (; j < SPECIES.loopBound(BNumCols); j += SPECIES_LEN) {
                     var vb = FloatVector.fromArray(SPECIES, B, indexB + j);
                     var vc = FloatVector.fromArray(SPECIES, C, indexCBase + j);
-                    vc.add(vb.mul(valA)).intoArray(C, indexCBase + j);
+                    va.fma(vb, vc).intoArray(C, indexCBase + j);
+                    // vc.add(vb.mul(valA)).intoArray(C, indexCBase + j);
                 }
 
                 for (; j < BNumCols; j++) {
@@ -185,29 +187,26 @@ public class NDArray {
         int BNumRows = other.shape[0], BNumCols = other.shape[1];
         int CNumRows = ANumRows, CNumCols = BNumCols;
 
+        int bound = SPECIES.loopBound(ANumCols);
 
         Concurrent.loopFor(0, ANumRows, i -> {
-            int aStart = i * ANumCols;
-            int aEnd = aStart + ANumCols;
-            int cIndex = i * BNumCols;
+            int indexABase = i * ANumCols;
+            int cIndex = i * CNumCols;
 
-            int indexB = 0;
             for (int xB = 0; xB < BNumCols; xB++) {
-                float total = 0;
-                int bound = SPECIES.loopBound(aEnd - aStart);
+                int indexB = xB * BNumRows;
 
-                int indexA = aStart;
                 int j = 0;
+                var sum = FloatVector.zero(SPECIES);
                 for (; j < bound; j += SPECIES_LEN) {
-                    var va = FloatVector.fromArray(SPECIES, A, indexA);
-                    var vb = FloatVector.fromArray(SPECIES, B, indexB);
-                    total += va.mul(vb).reduceLanes(VectorOperators.ADD);
-                    indexA += SPECIES_LEN;
-                    indexB += SPECIES_LEN;
+                    var va = FloatVector.fromArray(SPECIES, A, indexABase + j);
+                    var vb = FloatVector.fromArray(SPECIES, B, indexB + j);
+                    sum = va.fma(vb, sum);
                 }
 
-                while (indexA < aEnd) {
-                    total += A[indexA++] * B[indexB++];
+                float total = sum.reduceLanes(VectorOperators.ADD);
+                for (; j < ANumCols; j++) {
+                    total += A[indexABase + j] * B[indexB + j];
                 }
 
                 C[cIndex++] = total;
@@ -393,6 +392,10 @@ public class NDArray {
     }
 
     public static void main(String[] args) {
+        testMatmulFF();
+    }
+
+    private static void testMatmulFC() {
         var a = new NDArray(arrOf(3, 2), arrOfF(
                 1, 4,
                 2, 5,

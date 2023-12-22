@@ -1,4 +1,4 @@
-package core.benchmark
+package benchmarks
 
 import org.jetbrains.kotlinx.multik.api.linalg.dot
 import org.jetbrains.kotlinx.multik.api.mk
@@ -8,7 +8,7 @@ import kotlin.math.sqrt
 import kotlin.random.Random
 import kotlin.system.measureNanoTime
 
-class Benchmark(val N: Int) {
+class FLOPCalculator(val N: Int) {
 
     private fun fmt(double: Double): String = String.format("%.2f", double)
 
@@ -125,8 +125,9 @@ fun main(args: Array<String>) {
 //    val N = 16384
 //    val N = 25000
 
-    val benchmark = Benchmark(4096)
+    val benchmark = FLOPCalculator(4096)
     benchmark.info()
+
     println("\n== a @ b ==")
     benchmark.MK_Matmul()
     benchmark.NDArray_Matmul()
@@ -134,12 +135,12 @@ fun main(args: Array<String>) {
     println("\n== a @ b.T ==")
     benchmark.MK_Matmul_ABT()
     benchmark.NDArray_Matmul_ABT()
-
-    println("\n== a.T @ b ==")
-    benchmark.MK_Matmul_ATB()
-    benchmark.NDArray_Matmul_ATB()
-
-    println("\n== a.T @ b.T ==")
-    benchmark.MK_Matmul_ATBT()
-    benchmark.NDArray_Matmul_ATBT()
+//
+//    println("\n== a.T @ b ==")
+//    benchmark.MK_Matmul_ATB()
+//    benchmark.NDArray_Matmul_ATB()
+//
+//    println("\n== a.T @ b.T ==")
+//    benchmark.MK_Matmul_ATBT()
+//    benchmark.NDArray_Matmul_ATBT()
 }

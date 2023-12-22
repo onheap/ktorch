@@ -53,7 +53,7 @@ class MatrixTest {
             val n = Random.nextInt(1, 1024)
             val p = Random.nextInt(1, 1024)
 
-            println("A: $m X $n, B: $n X $p")
+            printMessage("A: $m X $n, B: $n X $p")
 
             val fa = FloatArray(m * n) { Random.nextFloat() }
             val fb = FloatArray(n * p) { Random.nextFloat() }
@@ -79,7 +79,7 @@ class MatrixTest {
             val n = Random.nextInt(1, 1024)
 
 
-            println("Matrix: $m X $n")
+            printMessage("Matrix: $m X $n")
 
             val f = FloatArray(m * n) { Random.nextFloat() }
 
@@ -95,7 +95,7 @@ class MatrixTest {
             val rank = Random.nextInt(1, 5)
             val shape = IntArray(rank) { Random.nextInt(1, 6) }
             val size = shape.fold(1, Int::times)
-            println(shape.joinToString(" X ", "A: "))
+            printMessage(shape.joinToString(" X ", "A: "))
 
             val f = FloatArray(size) { Random.nextFloat() }
             val A = mk.ndarray(f.toList(), shape, dimensionOf(rank)).asDNArray().transpose()
@@ -112,7 +112,7 @@ class MatrixTest {
             val n = Random.nextInt(1, 1024)
             val p = Random.nextInt(1, 1024)
 
-            println("A: $m X $n, B: $n X $p")
+            printMessage("A: $m X $n, B: $n X $p")
 
             val fa = FloatArray(m * n) { Random.nextFloat() }
             val fb = FloatArray(n * p) { Random.nextFloat() }
@@ -137,7 +137,7 @@ class MatrixTest {
             val n = Random.nextInt(1, 1024)
             val p = Random.nextInt(1, 1024)
 
-            println("A: $m X $n, B: $n X $p")
+            printMessage("A: $m X $n, B: $n X $p")
 
             val fa = FloatArray(m * n) { Random.nextFloat() }
             val fb = FloatArray(n * p) { Random.nextFloat() }
@@ -163,7 +163,7 @@ class MatrixTest {
             val n = Random.nextInt(1, 1024)
             val p = Random.nextInt(1, 1024)
 
-            println("A: $m X $n, B: $n X $p")
+            printMessage("A: $m X $n, B: $n X $p")
 
             val fa = FloatArray(m * n) { Random.nextFloat() }
             val fb = FloatArray(n * p) { Random.nextFloat() }
@@ -179,6 +179,10 @@ class MatrixTest {
 
             assertNDArrayEquals(C.asDNArray(), c)
         }
+    }
+    
+    private fun printMessage(message: String?) {
+        // println(message)
     }
 
 
