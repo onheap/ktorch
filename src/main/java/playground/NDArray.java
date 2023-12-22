@@ -318,6 +318,25 @@ public class NDArray {
         throw new IllegalArgumentException("Unsupported ordering");
     }
 
+    public float sum() {
+        int i = 0;
+        FloatVector sum = FloatVector.zero(SPECIES);
+        for (; i < SPECIES.loopBound(data.length); i += SPECIES_LEN) {
+            var v = FloatVector.fromArray(SPECIES, data, i);
+            sum = v.add(sum);
+        }
+
+        float total = sum.reduceLanes(VectorOperators.ADD);
+        for (; i < data.length; i++) {
+            total += data[i];
+        }
+
+        return total;
+    }
+
+    public NDArray reshape(int[] newShape) {
+        return new NDArray(newShape, this.data);
+    }
 
     private int getFlatIndex(int[] indices) {
         int index = 0;
