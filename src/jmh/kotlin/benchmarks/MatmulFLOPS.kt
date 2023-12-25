@@ -1,5 +1,6 @@
 package benchmarks
 
+import org.ejml.simple.SimpleMatrix
 import org.jetbrains.kotlinx.multik.api.linalg.dot
 import org.jetbrains.kotlinx.multik.api.mk
 import org.jetbrains.kotlinx.multik.api.rand
@@ -8,7 +9,7 @@ import kotlin.math.sqrt
 import kotlin.random.Random
 import kotlin.system.measureNanoTime
 
-class FLOPCalculator(val N: Int) {
+class MatmulFLOPS(val N: Int) {
 
     private fun fmt(double: Double): String = String.format("%.2f", double)
 
@@ -34,6 +35,17 @@ class FLOPCalculator(val N: Int) {
 
 
         println("Multik Matmul a @ b ${fmt(getFLOP() / nanos)} GFLOP/s")
+    }
+
+    fun EJML_Matmul() {
+        val A = SimpleMatrix(N, N, true, *FloatArray(N * N) { Random.nextFloat() })
+        val B = SimpleMatrix(N, N, true, *FloatArray(N * N) { Random.nextFloat() })
+
+        val nanos = measureNanoTime {
+            A.mult(B)
+        }.toDouble()
+
+        println("EJML Matmul a @ b ${fmt(getFLOP() / nanos)} GFLOP/s")
     }
 
     fun NDArray_Matmul() {
@@ -125,16 +137,17 @@ fun main(args: Array<String>) {
 //    val N = 16384
 //    val N = 25000
 
-    val benchmark = FLOPCalculator(4096)
+    val benchmark = MatmulFLOPS(4096)
     benchmark.info()
 
     println("\n== a @ b ==")
     benchmark.MK_Matmul()
     benchmark.NDArray_Matmul()
+    benchmark.EJML_Matmul()
 
-    println("\n== a @ b.T ==")
-    benchmark.MK_Matmul_ABT()
-    benchmark.NDArray_Matmul_ABT()
+//    println("\n== a @ b.T ==")
+//    benchmark.MK_Matmul_ABT()
+//    benchmark.NDArray_Matmul_ABT()
 //
 //    println("\n== a.T @ b ==")
 //    benchmark.MK_Matmul_ATB()

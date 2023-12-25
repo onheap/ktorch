@@ -24,6 +24,40 @@ public class NDArray {
     byte flags;
 
 
+    public static NDArray onesLike(NDArray other) {
+        return NDArray.of(other.shape, new float[other.getSize()]);
+    }
+
+    public static NDArray of(int[] shape) {
+        return new NDArray(shape);
+    }
+
+    public static NDArray of(float[] data) {
+        return NDArray.of(arrOf(data.length), data);
+    }
+
+    public static NDArray of(int[] shape, float[] data) {
+        return new NDArray(shape, data);
+    }
+
+    public static NDArray of(int[] shape, float[] data, Flags.Contiguous contiguous) {
+        return NDArray.of(
+                shape,
+                contiguous.calculateStrides(shape),
+                data,
+                Flags.setContiguous(Flags.ZERO, contiguous));
+    }
+
+    public static NDArray of(int[] shape, int[] strides, float[] data) {
+        return new NDArray(shape, strides, data);
+    }
+
+
+    public static NDArray of(int[] shape, int[] strides, float[] data, byte flags) {
+        return new NDArray(shape, strides, data, flags);
+    }
+
+
     public NDArray(int[] shape) {
         int numElements = 1;
         for (int i : shape) {
@@ -32,15 +66,15 @@ public class NDArray {
 
         this.data = new float[numElements];
         this.shape = shape;
-        this.strides = calculateStrides(shape);
-        this.flags = Flags.setCOrder(this.flags);
+        this.strides = Flags.Contiguous.C.calculateStrides(shape);
+        this.flags = Flags.setContiguous(this.flags, Flags.Contiguous.C);
     }
 
     public NDArray(int[] shape, float[] data) {
         this.shape = shape;
         this.data = data;
-        this.strides = calculateStrides(shape);
-        this.flags = Flags.setCOrder(this.flags);
+        this.strides = Flags.Contiguous.C.calculateStrides(shape);
+        this.flags = Flags.setContiguous(this.flags, Flags.Contiguous.C);
     }
 
     public NDArray(int[] shape, int[] strides, float[] data, byte flags) {
@@ -54,7 +88,7 @@ public class NDArray {
         this.shape = shape;
         this.data = data;
         this.strides = strides;
-        this.flags = Flags.setOrder(this.flags, shape, strides);
+        this.flags = Flags.setContiguous(this.flags, shape, strides);
     }
 
     public float[] getData() {
@@ -69,6 +103,17 @@ public class NDArray {
         return strides;
     }
 
+    public int getSize() {
+        return Util.getSize(shape);
+    }
+
+    public float asScalar() {
+        if (shape.length != 1 || shape[0] != 1) {
+            throw new IllegalArgumentException("Not a scalar");
+        }
+        return data[0];
+    }
+
     public NDArray transpose() {
         return new NDArray(
                 reverseArray(this.shape),
@@ -76,17 +121,6 @@ public class NDArray {
                 this.data
         );
     }
-
-    private int[] calculateStrides(int[] shape) {
-        int[] strides = new int[shape.length];
-        int stride = 1;
-        for (int i = shape.length - 1; i >= 0; i--) {
-            strides[i] = stride;
-            stride *= shape[i];
-        }
-        return strides;
-    }
-
 
     public static int[] broadcastShapes(int[] shapeA, int[] shapeB) {
         if (shapeA.length < shapeB.length) {
@@ -305,49 +339,176 @@ public class NDArray {
                             .formatted(Arrays.toString(this.shape), Arrays.toString(other.shape)));
         }
 
-        if (Flags.isCOrder(this.flags) && Flags.isCOrder(other.flags)) {
+        if (Flags.isCContiguous(this.flags) && Flags.isCContiguous(other.flags)) {
             return matmulCC(other);
-        } else if (Flags.isCOrder(this.flags) && Flags.isFOrder(other.flags)) {
+        } else if (Flags.isCContiguous(this.flags) && Flags.isFContiguous(other.flags)) {
             return matmulCF(other);
-        } else if (Flags.isFOrder(this.flags) && Flags.isCOrder(other.flags)) {
+        } else if (Flags.isFContiguous(this.flags) && Flags.isCContiguous(other.flags)) {
             return matmulFC(other);
-        } else if (Flags.isFOrder(this.flags) && Flags.isFOrder(other.flags)) {
+        } else if (Flags.isFContiguous(this.flags) && Flags.isFContiguous(other.flags)) {
             return matmulFF(other);
         }
 
         throw new IllegalArgumentException("Unsupported ordering");
     }
 
-    public float sum() {
+    public NDArray sum() {
+        float total = sumSubArray(data, 0, data.length);
+        return NDArray.of(arrOf(total));
+    }
+
+    private float sumSubArray(float[] A, int offset, int len) {
         int i = 0;
         FloatVector sum = FloatVector.zero(SPECIES);
-        for (; i < SPECIES.loopBound(data.length); i += SPECIES_LEN) {
-            var v = FloatVector.fromArray(SPECIES, data, i);
+        for (; i < SPECIES.loopBound(len); i += SPECIES_LEN) {
+            var v = FloatVector.fromArray(SPECIES, A, offset + i);
             sum = v.add(sum);
         }
 
         float total = sum.reduceLanes(VectorOperators.ADD);
-        for (; i < data.length; i++) {
-            total += data[i];
+        for (; i < len; i++) {
+            total += A[offset + i];
         }
-
         return total;
     }
 
+    public NDArray sum(int axis) {
+        int len = shape.length;
+        if (axis < 0) {
+            axis = len - axis;
+        }
+
+        if (axis >= len) {
+            throw new IllegalArgumentException(
+                    "axis %d is out of bounds for array of dimension %d".formatted(axis, len));
+        }
+
+        int[] newShape = delAtIndex(shape, axis);
+
+        Flags.Contiguous contiguous = Flags.getContiguous(flags);
+        if ((axis == len - 1 && contiguous == Flags.Contiguous.C)
+                || (axis == 0 && contiguous == Flags.Contiguous.F)) {
+            int axisLen = shape[axis];
+            float[] resData = new float[Util.getSize(newShape)];
+            for (int i = 0; i < resData.length; i++) {
+                resData[i] = sumSubArray(data, i * axisLen, axisLen);
+            }
+            return NDArray.of(newShape, resData, contiguous);
+        }
+
+        NDArray res = NDArray.of(newShape);
+        for (int i = 0; i < data.length; i++) {
+            int[] indices = getIndices(i);
+            int[] resIndices = delAtIndex(indices, axis);
+            float f = this.get(indices);
+            float curt = res.get(resIndices);
+            res.set(resIndices, curt + f);
+        }
+
+        return res;
+    }
+
+    public NDArray mul(NDArray other) {
+        elementwiseOperable(this, other);
+
+        NDArray res = NDArray.of(shape);
+
+        float[] A = this.data;
+        float[] B = other.data;
+        float[] C = res.data;
+
+        int i = 0;
+        for (; i < SPECIES.loopBound(data.length); i += SPECIES_LEN) {
+            var va = FloatVector.fromArray(SPECIES, this.data, i);
+            var vb = FloatVector.fromArray(SPECIES, other.data, i);
+            va.mul(vb).intoArray(C, i);
+        }
+
+        for (; i < data.length; i++) {
+            C[i] = A[i] * B[i];
+        }
+
+        return res;
+    }
+
+
+    public NDArray add(NDArray other) {
+        elementwiseOperable(this, other);
+
+        NDArray res = NDArray.of(shape);
+
+        float[] A = this.data;
+        float[] B = other.data;
+        float[] C = res.data;
+
+        int i = 0;
+        for (; i < SPECIES.loopBound(data.length); i += SPECIES_LEN) {
+            var va = FloatVector.fromArray(SPECIES, this.data, i);
+            var vb = FloatVector.fromArray(SPECIES, other.data, i);
+            va.add(vb).intoArray(C, i);
+        }
+
+        for (; i < data.length; i++) {
+            C[i] = A[i] + B[i];
+        }
+
+        return res;
+    }
+
+    public NDArray performElementWiseOperator(FloatUnaryOperator op) {
+        NDArray res = NDArray.of(shape);
+        float[] A = this.data;
+        float[] B = res.data;
+
+        for (int i = 0; i < A.length; i++) {
+            B[i] = op.applyAsFloat(A[i]);
+        }
+
+        return res;
+    }
+
+
     public NDArray reshape(int[] newShape) {
+        int prod = 1;
+        int negIdx = -1;
+        for (int i = 0; i < newShape.length; i++) {
+            if (newShape[i] < 0) {
+                if (negIdx != -1) {
+                    throw new IllegalArgumentException("more than one negative number in shape");
+                }
+                negIdx = i;
+            } else {
+                prod *= newShape[i];
+            }
+        }
+
+        int size = getSize();
+        if (size != prod && (negIdx == -1 || size % prod != 0)) {
+            throw new IllegalArgumentException("can not convert to new shape, size: %d, newShape: %s".formatted(size, Arrays.toString(newShape)));
+        }
+
+        if (negIdx != -1) {
+            newShape = Arrays.copyOf(newShape, newShape.length);
+            newShape[negIdx] = size / prod;
+        }
+
         return new NDArray(newShape, this.data);
     }
 
     private int getFlatIndex(int[] indices) {
-        int index = 0;
-        for (int i = 0; i < indices.length; i++) {
-            index += indices[i] * strides[i];
-        }
-        return index;
+        return Util.getFlatIndex(indices, strides);
+    }
+
+    private int[] getIndices(int flatIndex) {
+        return Util.getIndices(flatIndex, shape);
     }
 
     public float get(int[] indices) {
         return data[getFlatIndex(indices)];
+    }
+
+    public void set(int[] indices, float v) {
+        data[getFlatIndex(indices)] = v;
     }
 
     @Override
@@ -358,14 +519,8 @@ public class NDArray {
 
         a += "[".repeat(len);
 
-        int[] indices = new int[len];
-
         for (int i = 0; i < data.length; i++) {
-            int temp = i;
-            for (int j = len - 1; j >= 0; j--) {
-                indices[j] = temp % shape[j];
-                temp /= shape[j];
-            }
+            int[] indices = getIndices(i);
 
             if (i != 0) {
                 int zeros = 0;
@@ -401,17 +556,32 @@ public class NDArray {
                 Info:
                  Shape: %s
                  Strides: %s
-                 IsCOrder: %b
-                 IsFOrder: %b
+                 Contiguous: %s
                 """.formatted(
                 Arrays.toString(shape),
                 Arrays.toString(strides),
-                Flags.isCOrder(flags),
-                Flags.isFOrder(flags));
+                Flags.getContiguous(flags));
     }
 
     public static void main(String[] args) {
-        testMatmulFF();
+        var a = NDArray.of(arrOf(4, 3), arrOfF(
+                1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12
+        ));
+        System.out.println(a);
+
+        NDArray b = a.sum(0);
+        System.out.println(b);
+    }
+
+    private static void testReshape() {
+        var a = NDArray.of(arrOf(3, 2), arrOfF(
+                1, 4,
+                2, 5,
+                3, 6
+        ));
+
+        NDArray b = a.reshape(arrOf(-1, 6));
+        System.out.println(b);
     }
 
     private static void testMatmulFC() {

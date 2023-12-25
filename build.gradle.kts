@@ -11,6 +11,8 @@ plugins {
     kotlin("jvm") version "1.8.10"
     application
     id("me.champeau.jmh") version "0.7.2"
+
+    id("com.diffplug.spotless") version "6.23.3"
 }
 
 group = "org.onheap"
@@ -24,6 +26,7 @@ dependencies {
     testImplementation(kotlin("test"))
     implementation("org.jetbrains.kotlinx:multik-core:0.2.1")
     implementation("org.jetbrains.kotlinx:multik-default:0.2.1")
+    implementation("org.ejml:ejml-all:0.43.1")
 }
 
 tasks.test {
