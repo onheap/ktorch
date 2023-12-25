@@ -1,4 +1,4 @@
-package core.math
+package ndarray
 
 import org.jetbrains.kotlinx.multik.api.linalg.dot
 import org.jetbrains.kotlinx.multik.api.mk
@@ -7,16 +7,14 @@ import org.jetbrains.kotlinx.multik.ndarray.data.*
 import org.jetbrains.kotlinx.multik.ndarray.operations.sum
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*
-import playground.NDArray
-import playground.Util.*
+import ndarray.Util.*
 import kotlin.random.Random
 import kotlin.test.assertEquals
 
 
 typealias MKNDArray = org.jetbrains.kotlinx.multik.ndarray.data.NDArray<Float, DN>
 
-class MatrixTest {
-
+class NDArrayTest {
     @Test
     fun testMk() {
         val a = mk.ndarray(

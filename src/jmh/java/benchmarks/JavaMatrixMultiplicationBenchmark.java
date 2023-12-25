@@ -60,7 +60,7 @@ import org.openjdk.jmh.annotations.*;
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
 @Fork(value = 1, jvmArgsPrepend = {"--add-modules=jdk.incubator.vector", "-XX:-TieredCompilation"})
-public class MatrixMultiplicationBenchmark {
+public class JavaMatrixMultiplicationBenchmark {
 
     private static final VectorSpecies<Float> SPECIES = FloatVector.SPECIES_PREFERRED;
     private static final int SPECIES_LEN = SPECIES.length();
@@ -75,8 +75,8 @@ public class MatrixMultiplicationBenchmark {
 
     @Setup
     public void setup() {
-        this.left = MatrixMultiplicationBenchmark.newFloatRowMatrix(size * size);
-        this.right = MatrixMultiplicationBenchmark.newFloatRowMatrix(size * size);
+        this.left = JavaMatrixMultiplicationBenchmark.newFloatRowMatrix(size * size);
+        this.right = JavaMatrixMultiplicationBenchmark.newFloatRowMatrix(size * size);
         this.result = new float[size * size];
     }
 

@@ -1,6 +1,4 @@
-package playground;
-
-import kotlin.NotImplementedError;
+package ndarray;
 
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;

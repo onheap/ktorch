@@ -54,6 +54,8 @@ jmh {
     iterations.set(5)         // Default is 10
 //    warmup.set("10s")      // Default is '10 s'
 //    timeOnIteration.set("10s")  // Default is '10 s'
+
+//    includes.addAll("benchmarks.MKAndNDArrayBenchmark")
 }
 
 tasks.jmhRunBytecodeGenerator {

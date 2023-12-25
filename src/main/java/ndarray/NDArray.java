@@ -1,15 +1,14 @@
-package playground;
+package ndarray;
 
 import jdk.incubator.vector.FloatVector;
 import jdk.incubator.vector.VectorOperators;
 import jdk.incubator.vector.VectorSpecies;
 
-import javax.xml.stream.FactoryConfigurationError;
 import java.text.DecimalFormat;
 import java.util.Arrays;
 
 
-import static playground.Util.*;
+import static ndarray.Util.*;
 
 
 @SuppressWarnings("Duplicates")

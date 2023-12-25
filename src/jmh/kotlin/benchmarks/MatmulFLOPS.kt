@@ -4,7 +4,7 @@ import org.ejml.simple.SimpleMatrix
 import org.jetbrains.kotlinx.multik.api.linalg.dot
 import org.jetbrains.kotlinx.multik.api.mk
 import org.jetbrains.kotlinx.multik.api.rand
-import playground.NDArray
+import ndarray.NDArray
 import kotlin.math.sqrt
 import kotlin.random.Random
 import kotlin.system.measureNanoTime
