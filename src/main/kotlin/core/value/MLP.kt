@@ -5,6 +5,7 @@ import kotlin.random.Random
 // https://github.com/karpathy/micrograd/blob/master/micrograd/nn.py
 abstract class Module {
     abstract fun parameters(): List<Value>
+
     fun zeroGrad() = parameters().forEach { it.grad = 0.0 }
 }
 
@@ -43,9 +44,7 @@ class MLP(nin: Int, nouts: List<Int>) : Module() {
 
     init {
         val sz = listOf(nin) + nouts
-        this.layers = List(nouts.size) { i ->
-            Layer(sz[i], sz[i + 1], i != nouts.size - 1)
-        }
+        this.layers = List(nouts.size) { i -> Layer(sz[i], sz[i + 1], i != nouts.size - 1) }
     }
 
     override fun parameters() = layers.flatMap { it.parameters() }

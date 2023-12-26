@@ -13,6 +13,16 @@ public class Util {
         float applyAsFloat(float operand);
     }
 
+    @FunctionalInterface
+    public interface FloatBinaryOperator {
+        float applyAsFloat(float a, float b);
+    }
+
+    @FunctionalInterface
+    public interface DoubleUnaryOperator {
+        double applyAsDouble(double operand);
+    }
+
     public static int[] arrOf(int... a) {
         return a;
     }
@@ -37,7 +47,6 @@ public class Util {
         return index;
     }
 
-
     public static int[] getIndices(int flatIndex, int[] shape) {
         int[] indices = new int[shape.length];
         for (int j = shape.length - 1; j >= 0; j--) {
@@ -50,7 +59,6 @@ public class Util {
     public static int getSize(int[] shape) {
         return Arrays.stream(shape).reduce(1, (a, b) -> a * b);
     }
-
 
     public static int[] delAtIndex(int[] A, int idxToDel) {
         int len = A.length;
@@ -74,7 +82,6 @@ public class Util {
         return B;
     }
 
-
     public static int[] reverseArray(int[] A) {
         int[] array = Arrays.copyOf(A, A.length);
         for (int i = 0; i < array.length / 2; i++) {
@@ -85,32 +92,38 @@ public class Util {
         return array;
     }
 
-    public static void elementwiseOperable(NDArray a, NDArray b) {
-        if (Flags.getContiguous(a.flags) == Flags.Contiguous.NOT
-                || Flags.getContiguous(b.flags) == Flags.Contiguous.NOT) {
-            throw new IllegalArgumentException(
-                    "Not contiguous layout, a: %s, b: %s"
-                            .formatted(a.flags, b.flags));
-        }
-
-        if (Flags.isCContiguous(a.flags) && !Flags.isCContiguous(b.flags)
-                || Flags.isFContiguous(a.flags) && !Flags.isFContiguous(b.flags)) {
-            throw new IllegalArgumentException(
-                    "orders not equal, a: %s, b: %s"
-                            .formatted(a.flags, b.flags));
-        }
-
+    public static void assertShapesEqual(NDArray a, NDArray b) {
         if (!Arrays.equals(a.shape, b.shape)) {
             throw new IllegalArgumentException(
                     "shapes not equal, a: %s, b: %s"
                             .formatted(Arrays.toString(a.shape), Arrays.toString(b.shape)));
         }
+    }
+
+    public static boolean elementwiseOperable(NDArray a, NDArray b) {
+        if (Flags.getContiguous(a.flags) == Flags.Contiguous.NOT
+                || Flags.getContiguous(b.flags) == Flags.Contiguous.NOT) {
+            return false;
+        }
+
+        if (Flags.isCContiguous(a.flags) && !Flags.isCContiguous(b.flags)
+                || Flags.isFContiguous(a.flags) && !Flags.isFContiguous(b.flags)) {
+            return false;
+        }
+
+        if (!Arrays.equals(a.shape, b.shape)) {
+            return false;
+        }
 
         if (!Arrays.equals(a.strides, b.strides)) {
-            throw new IllegalArgumentException(
-                    "strides not equal, a: %s, b: %s"
-                            .formatted(Arrays.toString(a.strides), Arrays.toString(b.strides)));
+            return false;
         }
+
+        return true;
+    }
+
+    public static boolean elementwiseOperable(NDArray a) {
+        return Flags.getContiguous(a.flags) != Flags.Contiguous.NOT;
     }
 
     public static class Flags {
@@ -159,6 +172,7 @@ public class Util {
             };
 
             private final byte flag;
+
             public abstract int[] calculateStrides(int[] shape);
 
             public static Contiguous of(byte flag) {
@@ -166,8 +180,7 @@ public class Util {
                         .filter(con -> con.flag == flag)
                         .findFirst()
                         .orElseThrow(
-                                () -> new IllegalArgumentException("not a valid contiguous flag")
-                        );
+                                () -> new IllegalArgumentException("not a valid contiguous flag"));
             }
 
             Contiguous(byte flag) {
@@ -175,14 +188,14 @@ public class Util {
             }
         }
 
-
         public static byte setContiguous(byte flags, int[] shape, int[] strides) {
             if (isValidCContiguous(shape, strides)) {
                 flags = setContiguous(flags, Contiguous.C);
             } else if (isValidFContiguous(shape, strides)) {
                 flags = setContiguous(flags, Contiguous.F);
             } else {
-                flags = setContiguous(flags, Contiguous.NOT);
+                // flags = setContiguous(flags, Contiguous.NOT);
+                throw new IllegalArgumentException("Not a valid contiguous");
             }
 
             return flags;
@@ -197,7 +210,6 @@ public class Util {
         public static Contiguous getContiguous(byte flags) {
             return Contiguous.of((byte) (flags & Contiguous.MASK.flag));
         }
-
 
         public static boolean isCContiguous(byte flags) {
             return (flags & Contiguous.MASK.flag) == Contiguous.C.flag;
@@ -232,7 +244,8 @@ public class Util {
 
         public static void loopFor(int start, int endExclusive, IntConsumer consumer) {
             try {
-                POOL.submit(() -> IntStream.range(start, endExclusive).parallel().forEach(consumer)).get();
+                POOL.submit(() -> IntStream.range(start, endExclusive).parallel().forEach(consumer))
+                        .get();
             } catch (InterruptedException | ExecutionException e) {
                 throw new RuntimeException(e);
             }

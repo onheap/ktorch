@@ -17,11 +17,9 @@ internal class ValueTest {
         val x = a + 4.0
         val y = b + Value(4.0)
 
-
         assertEquals(7.0, x.data, DELTA)
         assertEquals(7.0, y.data, DELTA)
     }
-
 
     @Test
     fun times() {
@@ -30,7 +28,6 @@ internal class ValueTest {
 
         val x = a * 4.0
         val y = b * Value(4.0)
-
 
         x.backward()
         y.backward()
@@ -59,7 +56,6 @@ internal class ValueTest {
         assertEquals(108.0, a.grad, DELTA)
         assertEquals(108.0, b.grad, DELTA)
     }
-
 
     @Test
     fun backward1() {
@@ -98,24 +94,51 @@ internal class ValueTest {
         assertEquals(645.5773, b.grad, DELTA)
     }
 
-
     @Test
     fun sum() {
-        val l1 = listOf(
-            Value(2.0), Value(1.0), Value(-3.0), Value(45.0),
-            Value(28.0), Value(82.0), Value(-5.0), Value(9.0),
-            Value(-33.0), Value(51.0), Value(38.0), Value(78.0)
-        )
+        val l1 =
+            listOf(
+                Value(2.0),
+                Value(1.0),
+                Value(-3.0),
+                Value(45.0),
+                Value(28.0),
+                Value(82.0),
+                Value(-5.0),
+                Value(9.0),
+                Value(-33.0),
+                Value(51.0),
+                Value(38.0),
+                Value(78.0))
 
-        val l2 = listOf(
-            Value(2.0), Value(1.0), Value(-3.0), Value(45.0),
-            Value(28.0), Value(82.0), Value(-5.0), Value(9.0),
-            Value(-33.0), Value(51.0), Value(38.0), Value(78.0)
-        )
+        val l2 =
+            listOf(
+                Value(2.0),
+                Value(1.0),
+                Value(-3.0),
+                Value(45.0),
+                Value(28.0),
+                Value(82.0),
+                Value(-5.0),
+                Value(9.0),
+                Value(-33.0),
+                Value(51.0),
+                Value(38.0),
+                Value(78.0))
 
-        val res1 = l1[0] + l1[1] + l1[2] + l1[3] +
-                   l1[4] + l1[5] + l1[6] + l1[7] +
-                   l1[8] + l1[9] + l1[10] + l1[11]
+        val res1 =
+            l1[0] +
+                l1[1] +
+                l1[2] +
+                l1[3] +
+                l1[4] +
+                l1[5] +
+                l1[6] +
+                l1[7] +
+                l1[8] +
+                l1[9] +
+                l1[10] +
+                l1[11]
 
         val res2 = l2.sum()
 
@@ -125,7 +148,6 @@ internal class ValueTest {
         assertEquals(res1.data, res2.data, DELTA)
         assertEquals(res1.grad, res2.grad, DELTA)
 
-
         for (i in 0..11) {
             val v1 = l1[i]
             val v2 = l2[i]
@@ -134,8 +156,4 @@ internal class ValueTest {
             assertEquals(v1.grad, v2.grad, DELTA)
         }
     }
-
-
 }
-
-

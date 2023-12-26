@@ -24,19 +24,14 @@ package benchmarks;
 //
 //
 
-
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
 import java.util.function.IntConsumer;
 import java.util.random.RandomGenerator;
-
-import jdk.incubator.vector.*;
-
-import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
-
+import jdk.incubator.vector.*;
 import org.openjdk.jmh.annotations.*;
-
 
 /**
  * Copied from https://github.com/openjdk/jdk/pull/15338
@@ -54,20 +49,22 @@ import org.openjdk.jmh.annotations.*;
  * MatrixMultiplicationBenchmark.mmulBlockedVectorAuto    1024  avgt    5  22.924 ± 0.738  ms/op
  * MatrixMultiplicationBenchmark.mmulNDImpl               1024  avgt    5  11.129 ± 0.254  ms/op
  */
-
-
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
-@Fork(value = 1, jvmArgsPrepend = {"--add-modules=jdk.incubator.vector", "-XX:-TieredCompilation"})
+@Fork(
+        value = 1,
+        jvmArgsPrepend = {"--add-modules=jdk.incubator.vector", "-XX:-TieredCompilation"})
 public class JavaMatrixMultiplicationBenchmark {
 
     private static final VectorSpecies<Float> SPECIES = FloatVector.SPECIES_PREFERRED;
     private static final int SPECIES_LEN = SPECIES.length();
 
     private static final int BLOCK_SIZE = 16;
+
     @Param({"1024"})
     private int size;
+
     private float[] left;
     private float[] right;
 
@@ -80,36 +77,35 @@ public class JavaMatrixMultiplicationBenchmark {
         this.result = new float[size * size];
     }
 
-    //@Benchmark
-    //public float[] mmulBaseline() {
+    // @Benchmark
+    // public float[] mmulBaseline() {
     //    return baseline(left, right, result, size);
-    //}
+    // }
 
-    //@Benchmark
-    //public float[] mmulBlocked() {
+    // @Benchmark
+    // public float[] mmulBlocked() {
     //    return blocked(left, right, result, size, BLOCK_SIZE);
-    //}
+    // }
 
-    //@Benchmark
-    //public float[] mmulSimpleFMA() {
+    // @Benchmark
+    // public float[] mmulSimpleFMA() {
     //    return simpleFMA(left, right, result, size);
-    //}
+    // }
 
     @Benchmark
     public float[] mmulNDImpl() {
         return ndMatmul(left, right, result, size);
     }
 
-    //@Benchmark
-    //public float[] mmulSimpleVector() {
+    // @Benchmark
+    // public float[] mmulSimpleVector() {
     //    return simpleVector(left, right, result, size);
-    //}
+    // }
 
     @Benchmark
     public float[] mmulBlockedVectorAuto() {
         return blockedVector(left, right, result, size);
     }
-
 
     private float[] baseline(float[] a, float[] b, float[] result, int n) {
         for (int i = 0; i < n; i++) {
@@ -127,19 +123,23 @@ public class JavaMatrixMultiplicationBenchmark {
     private float[] blocked(float[] a, float[] b, float[] result, int n, int blocksize) {
 
         // for (int kk = 0; kk < n; kk += blocksize) {
-        Concurrent.loopFor(0, n, blocksize, kk -> {
-            for (int jj = 0; jj < n; jj += blocksize) {
-                for (int i = 0; i < n; i++) {
-                    for (int j = jj; j < jj + blocksize; ++j) {
-                        float sum = result[i * n + j];
-                        for (int k = kk; k < kk + blocksize; ++k) {
-                            sum += a[i * n + k] * b[k * n + j];
+        Concurrent.loopFor(
+                0,
+                n,
+                blocksize,
+                kk -> {
+                    for (int jj = 0; jj < n; jj += blocksize) {
+                        for (int i = 0; i < n; i++) {
+                            for (int j = jj; j < jj + blocksize; ++j) {
+                                float sum = result[i * n + j];
+                                for (int k = kk; k < kk + blocksize; ++k) {
+                                    sum += a[i * n + k] * b[k * n + j];
+                                }
+                                result[i * n + j] = sum;
+                            }
                         }
-                        result[i * n + j] = sum;
                     }
-                }
-            }
-        });
+                });
         return result;
     }
 
@@ -162,41 +162,43 @@ public class JavaMatrixMultiplicationBenchmark {
     private float[] ndMatmul(float[] A, float[] B, float[] C, int n) {
 
         // for (int i = 0; i < n; i++) {
-        Concurrent.loopFor(0, n, i -> {
-            int indexCBase = i * n;
-            {
-                // init the row in C
-                float valA = A[i * n];
-                int j = 0;
-                for (; j < SPECIES.loopBound(n); j += SPECIES_LEN) {
-                    var vb = FloatVector.fromArray(SPECIES, B, j);
-                    vb.mul(valA).intoArray(C, indexCBase + j);
-                }
+        Concurrent.loopFor(
+                0,
+                n,
+                i -> {
+                    int indexCBase = i * n;
+                    {
+                        // init the row in C
+                        float valA = A[i * n];
+                        int j = 0;
+                        for (; j < SPECIES.loopBound(n); j += SPECIES_LEN) {
+                            var vb = FloatVector.fromArray(SPECIES, B, j);
+                            vb.mul(valA).intoArray(C, indexCBase + j);
+                        }
 
-                for (; j < n; j++) {
-                    C[indexCBase + j] = valA * B[j];
-                }
-            }
+                        for (; j < n; j++) {
+                            C[indexCBase + j] = valA * B[j];
+                        }
+                    }
 
-            // sum up the final results
-            for (int k = 1; k < n; k++) {
-                int indexB = k * n;
-                float valA = A[i * n + k];
+                    // sum up the final results
+                    for (int k = 1; k < n; k++) {
+                        int indexB = k * n;
+                        float valA = A[i * n + k];
 
+                        int j = 0;
+                        var va = FloatVector.broadcast(SPECIES, valA);
+                        for (; j < SPECIES.loopBound(n); j += SPECIES_LEN) {
+                            var vb = FloatVector.fromArray(SPECIES, B, indexB + j);
+                            var vc = FloatVector.fromArray(SPECIES, C, indexCBase + j);
+                            va.fma(vb, vc).intoArray(C, indexCBase + j);
+                        }
 
-                int j = 0;
-                var va = FloatVector.broadcast(SPECIES, valA);
-                for (; j < SPECIES.loopBound(n); j += SPECIES_LEN) {
-                    var vb = FloatVector.fromArray(SPECIES, B, indexB + j);
-                    var vc = FloatVector.fromArray(SPECIES, C, indexCBase + j);
-                    va.fma(vb, vc).intoArray(C, indexCBase + j);
-                }
-
-                for (; j < n; j++) {
-                    C[indexCBase + j] += valA * B[indexB + j];
-                }
-            }
-        });
+                        for (; j < n; j++) {
+                            C[indexCBase + j] += valA * B[indexB + j];
+                        }
+                    }
+                });
 
         return C;
     }
@@ -229,22 +231,30 @@ public class JavaMatrixMultiplicationBenchmark {
         int blockWidth = n >= 256 ? 512 : 256;
         int blockHeight = n >= 512 ? 8 : n >= 256 ? 16 : 32;
 
-
         // for (int rowOffset = 0; rowOffset < n; rowOffset += blockHeight) {
-        Concurrent.loopFor(0, n, blockHeight, rowOffset -> {
-            for (int columnOffset = 0; columnOffset < n; columnOffset += blockWidth) {
-                for (int i = 0; i < n; i++) {
-                    for (int j = columnOffset; j < columnOffset + blockWidth && j < n; j += SPECIES.length()) {
-                        var sum = FloatVector.fromArray(SPECIES, result, i * n + j);
-                        for (int k = rowOffset; k < rowOffset + blockHeight && k < n; k++) {
-                            var multiplier = FloatVector.broadcast(SPECIES, a[i * n + k]);
-                            sum = multiplier.fma(FloatVector.fromArray(SPECIES, b, k * n + j), sum);
+        Concurrent.loopFor(
+                0,
+                n,
+                blockHeight,
+                rowOffset -> {
+                    for (int columnOffset = 0; columnOffset < n; columnOffset += blockWidth) {
+                        for (int i = 0; i < n; i++) {
+                            for (int j = columnOffset;
+                                    j < columnOffset + blockWidth && j < n;
+                                    j += SPECIES.length()) {
+                                var sum = FloatVector.fromArray(SPECIES, result, i * n + j);
+                                for (int k = rowOffset; k < rowOffset + blockHeight && k < n; k++) {
+                                    var multiplier = FloatVector.broadcast(SPECIES, a[i * n + k]);
+                                    sum =
+                                            multiplier.fma(
+                                                    FloatVector.fromArray(SPECIES, b, k * n + j),
+                                                    sum);
+                                }
+                                sum.intoArray(result, i * n + j);
+                            }
                         }
-                        sum.intoArray(result, i * n + j);
                     }
-                }
-            }
-        });
+                });
 
         return result;
     }
@@ -259,34 +269,34 @@ public class JavaMatrixMultiplicationBenchmark {
         return matrix;
     }
 
-
     public static class Concurrent {
         // https://github.com/lessthanoptimal/ejml/blob/SNAPSHOT/main/ejml-core/src/pabeles/concurrency/ConcurrencyOps.java
         private static final ForkJoinPool POOL = new ForkJoinPool();
 
         public static void loopFor(int start, int endExclusive, IntConsumer consumer) {
             try {
-                POOL.submit(() -> IntStream.range(start, endExclusive).parallel().forEach(consumer)).get();
+                POOL.submit(() -> IntStream.range(start, endExclusive).parallel().forEach(consumer))
+                        .get();
             } catch (InterruptedException | ExecutionException e) {
                 throw new RuntimeException(e);
             }
         }
 
-
         public static void loopFor(int start, int endExclusive, int step, IntConsumer consumer) {
-            if (step <= 0)
-                throw new IllegalArgumentException("Step must be a positive number.");
-            if (start >= endExclusive)
-                return;
+            if (step <= 0) throw new IllegalArgumentException("Step must be a positive number.");
+            if (start >= endExclusive) return;
             try {
                 int range = endExclusive - start;
                 int iterations = range / step + ((range % step == 0) ? 0 : 1);
-                POOL.submit(() -> IntStream.range(0, iterations).parallel().forEach(i -> consumer.accept(start + i * step))).get();
+                POOL.submit(
+                                () ->
+                                        IntStream.range(0, iterations)
+                                                .parallel()
+                                                .forEach(i -> consumer.accept(start + i * step)))
+                        .get();
             } catch (InterruptedException | ExecutionException e) {
                 throw new RuntimeException(e);
             }
         }
-
     }
-
 }

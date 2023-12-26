@@ -1,6 +1,3 @@
 package core.op
 
-class JvmExpOp {
-
-
-}
+class JvmExpOp {}
