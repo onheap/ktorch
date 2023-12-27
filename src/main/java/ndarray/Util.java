@@ -18,11 +18,6 @@ public class Util {
         float applyAsFloat(float a, float b);
     }
 
-    @FunctionalInterface
-    public interface DoubleUnaryOperator {
-        double applyAsDouble(double operand);
-    }
-
     public static int[] arrOf(int... a) {
         return a;
     }

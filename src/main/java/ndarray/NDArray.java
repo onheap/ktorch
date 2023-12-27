@@ -13,6 +13,9 @@ import jdk.incubator.vector.VectorSpecies;
 @SuppressWarnings("Duplicates")
 // https://github.com/tinygrad/tinygrad/blob/91a352a8e2697828a4b1eafa2bdc1a9a3b7deffa/tinygrad/tensor.py
 public class NDArray implements Iterable<Float> {
+
+    public static final NDArray EMPTY = NDArray.of(new float[0]);
+
     private static final VectorSpecies<Float> SPECIES = FloatVector.SPECIES_PREFERRED;
     private static final int SPECIES_LEN = SPECIES.length();
 
@@ -34,6 +37,12 @@ public class NDArray implements Iterable<Float> {
 
     public static NDArray of(int[] shape) {
         return NDArray.of(shape, Flags.Contiguous.C);
+    }
+
+    public static NDArray fill(int[] shape, float v) {
+        float[] data = new float[Util.getSize(shape)];
+        Arrays.fill(data, v);
+        return NDArray.of(shape, data, Flags.Contiguous.C);
     }
 
     public static NDArray of(float[] data) {
@@ -410,27 +419,73 @@ public class NDArray implements Iterable<Float> {
         throw new IllegalArgumentException("Unsupported ordering");
     }
 
+    public NDArray maximum(float v) {
+        assert elementwiseOperable(this);
+
+        NDArray res = NDArray.zerosLike(this);
+
+        float[] A = this.data;
+        float[] B = res.data;
+
+        int i = 0;
+        int len = A.length;
+        FloatVector max = FloatVector.broadcast(SPECIES, v);
+        for (; i < SPECIES.loopBound(len); i += SPECIES_LEN) {
+            var va = FloatVector.fromArray(SPECIES, A, i);
+            va.max(max).intoArray(B, i);
+        }
+
+        for (; i < len; i++) {
+            B[i] = Math.max(A[i], v);
+        }
+
+        return res;
+    }
+
+    public NDArray maximum(NDArray other) {
+        assert elementwiseOperable(this);
+
+        NDArray res = NDArray.zerosLike(this);
+
+        float[] A = this.data;
+        float[] B = other.data;
+        float[] C = res.data;
+
+        int i = 0;
+        int len = A.length;
+        for (; i < SPECIES.loopBound(len); i += SPECIES_LEN) {
+            var va = FloatVector.fromArray(SPECIES, A, i);
+            var vb = FloatVector.fromArray(SPECIES, B, i);
+            va.max(vb).intoArray(C, i);
+        }
+
+        for (; i < len; i++) {
+            C[i] = Math.max(A[i], B[i]);
+        }
+
+        return res;
+    }
+
     public NDArray sum() {
-        float total = sumSubArray(data, 0, data.length);
+        float total = elementWiseReduce(data, 0, data.length, ElementWiseReduceOperator.SUM);
         return NDArray.of(arrOf(total));
     }
 
-    private float sumSubArray(float[] A, int offset, int len) {
-        int i = 0;
-        FloatVector sum = FloatVector.zero(SPECIES);
-        for (; i < SPECIES.loopBound(len); i += SPECIES_LEN) {
-            var v = FloatVector.fromArray(SPECIES, A, offset + i);
-            sum = v.add(sum);
-        }
-
-        float total = sum.reduceLanes(VectorOperators.ADD);
-        for (; i < len; i++) {
-            total += A[offset + i];
-        }
-        return total;
+    public NDArray sum(int axis) {
+        return dimionsionWiseReduce(axis, ElementWiseReduceOperator.SUM);
     }
 
-    public NDArray sum(int axis) {
+    public NDArray max() {
+        float max = elementWiseReduce(data, 0, data.length, ElementWiseReduceOperator.MAX);
+        return NDArray.of(arrOf(max));
+    }
+
+    public NDArray max(int axis) {
+        return dimionsionWiseReduce(axis, ElementWiseReduceOperator.MAX);
+    }
+
+    private NDArray dimionsionWiseReduce(int axis, ElementWiseReduceOperator op) {
+
         int len = shape.length;
         if (axis < 0) {
             axis = len - axis;
@@ -448,20 +503,35 @@ public class NDArray implements Iterable<Float> {
             int axisLen = shape[axis];
             float[] resData = new float[Util.getSize(newShape)];
             for (int i = 0; i < resData.length; i++) {
-                resData[i] = sumSubArray(data, i * axisLen, axisLen);
+                resData[i] = elementWiseReduce(data, i * axisLen, axisLen, op);
             }
             return NDArray.of(newShape, resData, contiguous);
         }
 
-        NDArray res = NDArray.of(newShape);
+        NDArray res = NDArray.fill(newShape, op.getInit(data, 0, data.length));
         for (int i = 0; i < data.length; i++) {
             int[] indices = getIndices(i);
             int[] resIndices = delAtIndex(indices, axis);
             float f = this.get(indices);
             float curt = res.get(resIndices);
-            res.set(resIndices, curt + f);
+            res.set(resIndices, op.processSingle(curt, f));
         }
 
+        return res;
+    }
+
+    private float elementWiseReduce(float[] A, int offset, int len, ElementWiseReduceOperator op) {
+        int i = 0;
+        FloatVector temp = FloatVector.broadcast(SPECIES, op.getInit(A, offset, len));
+        for (; i < SPECIES.loopBound(len); i += SPECIES_LEN) {
+            var v = FloatVector.fromArray(SPECIES, A, offset + i);
+            temp = v.lanewise(op.vectorOperator, temp);
+        }
+
+        float res = temp.reduceLanes(op.vectorOperator);
+        for (; i < len; i++) {
+            res = op.processSingle(A[offset + i], res);
+        }
         return res;
     }
 
@@ -573,13 +643,11 @@ public class NDArray implements Iterable<Float> {
     }
 
     public NDArray log() {
-        assert elementwiseOperable(this);
-        return performElementWiseOperator(Math::log);
+        return performElementWiseOperator(ElementWiseUnaryOperator.LOG);
     }
 
     public NDArray exp() {
-        assert elementwiseOperable(this);
-        return performElementWiseOperator(Math::exp);
+        return performElementWiseOperator(ElementWiseUnaryOperator.EXP);
     }
 
     private float[] iterateToFloatArray(NDArray a, NDArray b, FloatBinaryOperator op) {
@@ -607,6 +675,7 @@ public class NDArray implements Iterable<Float> {
     }
 
     public NDArray performElementWiseOperator(FloatUnaryOperator op) {
+        assert elementwiseOperable(this);
         NDArray res = NDArray.zerosLike(this);
         float[] A = this.data;
         float[] B = res.data;
@@ -618,13 +687,21 @@ public class NDArray implements Iterable<Float> {
         return res;
     }
 
-    public NDArray performElementWiseOperator(DoubleUnaryOperator op) {
+    public NDArray performElementWiseOperator(ElementWiseUnaryOperator op) {
+        assert elementwiseOperable(this);
         NDArray res = NDArray.zerosLike(this);
         float[] A = this.data;
         float[] B = res.data;
 
-        for (int i = 0; i < A.length; i++) {
-            B[i] = (float) op.applyAsDouble(A[i]);
+        int len = A.length;
+        int i = 0;
+        for (; i < SPECIES.loopBound(len); i += SPECIES_LEN) {
+            var va = FloatVector.fromArray(SPECIES, A, i);
+            va.lanewise(op.vectorOperator).intoArray(B, i);
+        }
+
+        for (; i < len; i++) {
+            B[i] = op.processSingle(A[i]);
         }
 
         return res;
@@ -727,142 +804,5 @@ public class NDArray implements Iterable<Float> {
                  Contiguous: %s
                 """
                 .formatted(Arrays.toString(shape), Arrays.toString(strides), getContiguous());
-    }
-
-    public static void main(String[] args) {
-        var a = NDArray.of(arrOf(4, 3), arrOfF(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)).transpose();
-        System.out.println(a);
-
-        NDArray b = a.reshape(arrOf(4, 3));
-
-        System.out.println(b);
-    }
-
-    private static void testSumWithAxis() {
-        var a = NDArray.of(arrOf(4, 3), arrOfF(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12));
-        System.out.println(a);
-
-        NDArray b = a.sum(0);
-        System.out.println(b);
-    }
-
-    private static void testReshape() {
-        var a =
-                NDArray.of(
-                        arrOf(3, 2),
-                        arrOfF(
-                                1, 4,
-                                2, 5,
-                                3, 6));
-
-        NDArray b = a.reshape(arrOf(-1, 6));
-        System.out.println(b);
-    }
-
-    private static void testMatmulFC() {
-        var a =
-                new NDArray(
-                        arrOf(3, 2),
-                        arrOfF(
-                                1, 4,
-                                2, 5,
-                                3, 6));
-
-        var b =
-                new NDArray(
-                        arrOf(3, 2),
-                        arrOfF(
-                                1, 2,
-                                3, 4,
-                                5, 6));
-
-        var c = a.transpose();
-        System.out.println(c);
-
-        NDArray res = c.matmul(b);
-        System.out.println(res);
-    }
-
-    private static void testMatmulFF() {
-        var a =
-                new NDArray(
-                        arrOf(3, 2),
-                        arrOfF(
-                                1, 4,
-                                2, 5,
-                                3, 6));
-
-        var b = new NDArray(arrOf(2, 3), arrOfF(1, 3, 5, 2, 4, 6));
-
-        var c = a.transpose();
-        var d = b.transpose();
-
-        System.out.println(c);
-        System.out.println(d);
-
-        NDArray res = c.matmul(d);
-
-        System.out.println(res);
-    }
-
-    private static void testMatmulCF() {
-        var a = new NDArray(arrOf(2, 3), arrOfF(1, 2, 3, 4, 5, 6));
-
-        var b = new NDArray(arrOf(2, 3), arrOfF(1, 3, 5, 2, 4, 6));
-
-        var c = b.transpose();
-
-        System.out.println(c);
-
-        NDArray d = a.matmul(c);
-
-        System.out.println(d);
-    }
-
-    private static void testPrint() {
-        float[] data = arrOf(0.0F, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11);
-        int[] shape = arrOf(4, 1, 3);
-
-        NDArray a = new NDArray(shape, data);
-
-        System.out.println(a);
-    }
-
-    private static void testBroadcast() {
-        int[] res = NDArray.broadcastShapes(arrOf(8, 1, 6, 1), arrOf(7, 1, 5));
-        System.out.println(Arrays.toString(res));
-    }
-
-    private static void testMatmulCC() {
-        var a = new NDArray(arrOf(2, 3), arrOfF(1, 2, 3, 4, 5, 6));
-
-        var b =
-                new NDArray(
-                        arrOf(3, 2),
-                        arrOfF(
-                                1, 2,
-                                3, 4,
-                                5, 6));
-
-        NDArray res = a.matmul(b);
-
-        System.out.println(res);
-    }
-
-    private static void testTranspose() {
-        var a = new NDArray(arrOf(4, 3), arrOfF(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12));
-
-        System.out.println(a);
-        NDArray b = a.transpose();
-        System.out.println(b);
-    }
-
-    private static void testTranspose1() {
-        var a = new NDArray(arrOf(2, 2, 3), arrOfF(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12));
-
-        System.out.println(a);
-
-        var b = a.transpose();
-        System.out.println(b);
     }
 }
