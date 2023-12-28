@@ -10,7 +10,7 @@ public enum ElementWiseReduceOperator {
         }
 
         @Override
-        float getInit(float[] A, int offset, int len) {
+        float getInit() {
             return 0;
         }
     },
@@ -22,8 +22,8 @@ public enum ElementWiseReduceOperator {
         }
 
         @Override
-        float getInit(float[] A, int offset, int len) {
-            return A[offset];
+        float getInit() {
+            return Float.NEGATIVE_INFINITY;
         }
     };
 
@@ -31,7 +31,7 @@ public enum ElementWiseReduceOperator {
 
     abstract float processSingle(float a, float b);
 
-    abstract float getInit(float[] A, int offset, int len);
+    abstract float getInit();
 
     ElementWiseReduceOperator(VectorOperators.Associative op) {
         this.vectorOperator = op;

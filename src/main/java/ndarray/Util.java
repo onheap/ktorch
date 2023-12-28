@@ -43,7 +43,10 @@ public class Util {
     }
 
     public static int[] getIndices(int flatIndex, int[] shape) {
-        int[] indices = new int[shape.length];
+        return calIndices(flatIndex, shape, new int[shape.length]);
+    }
+
+    public static int[] calIndices(int flatIndex, int[] shape, int[] indices) {
         for (int j = shape.length - 1; j >= 0; j--) {
             indices[j] = flatIndex % shape[j];
             flatIndex /= shape[j];
@@ -101,8 +104,8 @@ public class Util {
             return false;
         }
 
-        if (Flags.isCContiguous(a.flags) && !Flags.isCContiguous(b.flags)
-                || Flags.isFContiguous(a.flags) && !Flags.isFContiguous(b.flags)) {
+        if ((Flags.isCContiguous(a.flags) && !Flags.isCContiguous(b.flags))
+                || (Flags.isFContiguous(a.flags) && !Flags.isFContiguous(b.flags))) {
             return false;
         }
 
