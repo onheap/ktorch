@@ -1,5 +1,7 @@
 package benchmarks
 
+import ai.djl.ndarray.NDManager
+import ai.djl.ndarray.types.Shape
 import java.util.concurrent.TimeUnit
 import jdk.incubator.vector.*
 import kotlin.random.Random
@@ -7,46 +9,59 @@ import ndarray.NDArray
 import org.jetbrains.kotlinx.multik.api.linalg.dot
 import org.jetbrains.kotlinx.multik.api.mk
 import org.jetbrains.kotlinx.multik.api.ndarray
-import org.jetbrains.kotlinx.multik.ndarray.data.D2
 import org.openjdk.jmh.annotations.*
-
-typealias MKNDArray = org.jetbrains.kotlinx.multik.ndarray.data.NDArray<Float, D2>
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
 @Fork(value = 1, jvmArgsPrepend = ["--add-modules=jdk.incubator.vector", "-XX:-TieredCompilation"])
-open class MKAndNDArrayBenchmark {
+open class BenchmarkLibraries {
     @Param("1024") private var size = 0
 
     private lateinit var A: FloatArray
     private lateinit var B: FloatArray
 
-    private lateinit var MA: MKNDArray
-    private lateinit var MB: MKNDArray
-
-    private lateinit var NA: NDArray
-    private lateinit var NB: NDArray
+    private lateinit var manager: NDManager
 
     @Setup
     fun setup() {
         A = FloatArray(size * size) { Random.nextFloat() }
         B = FloatArray(size * size) { Random.nextFloat() }
+    }
 
-        MA = mk.ndarray(A, size, size)
-        MB = mk.ndarray(B, size, size)
+    @Setup(Level.Invocation)
+    fun beforeEach() {
+        manager = NDManager.newBaseManager()
+    }
 
-        NA = NDArray.of(intArrayOf(size, size), A)
-        NB = NDArray.of(intArrayOf(size, size), B)
+    @TearDown(Level.Invocation)
+    fun afterEach() {
+        // close manager for each benchmark,
+        // otherwise it will produce an out of memory error
+        manager.close()
     }
 
     @Benchmark
     fun MK_Matmul() {
+        val MA = mk.ndarray(A, size, size)
+        val MB = mk.ndarray(B, size, size)
+
         MA dot MB
     }
 
     @Benchmark
-    fun MDArray_Matmul() {
+    fun NDArray_Matmul() {
+        val NA = NDArray.of(intArrayOf(size, size), A)
+        val NB = NDArray.of(intArrayOf(size, size), B)
+
         NA.matmul(NB)
+    }
+
+    @Benchmark
+    fun DJL_Matmul() {
+        val DA = manager.create(A, Shape(size.toLong(), size.toLong()))
+        val DB = manager.create(B, Shape(size.toLong(), size.toLong()))
+
+        DA.matMul(DB)
     }
 }

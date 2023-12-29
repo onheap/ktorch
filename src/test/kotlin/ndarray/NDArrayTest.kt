@@ -62,7 +62,7 @@ class NDArrayTest {
     }
 
     @Test
-    fun testNdArraySumWithAxis() {
+    fun testNdArray() {
         val A = NDArray.of(FloatArray(12) { i -> (i + 1).toFloat() })
         val B = A.reshape(arrOf(4, 3))
 

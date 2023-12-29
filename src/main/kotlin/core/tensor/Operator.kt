@@ -1,41 +1,83 @@
 package core.tensor
 
-abstract class Operator<T> {
-    lateinit var params: Array<out Tensor<T>>
-    val savedData = mutableListOf<T>()
+import ndarray.NDArray
 
-    abstract fun forward(vararg tensors: Tensor<T>): Tensor<T>
+abstract class Operator {
+    // parents
+    val params = mutableListOf<Tensor>()
+    private val savedTensor = mutableListOf<Tensor>()
 
-    abstract fun backward(outputGrad: T)
+    abstract fun forward(vararg tensors: Tensor): Tensor
 
-    fun saveForBackward(vararg t: T) {
-        savedData.addAll(t)
+    abstract fun backward(outputGrad: Tensor): List<Tensor>
+
+    fun saveForBackward(vararg t: Tensor) {
+        savedTensor.addAll(t)
     }
 
-    operator fun invoke(vararg tensors: Tensor<T>): Tensor<T> {
-        params = tensors
+    fun savedTensor() = savedTensor
+
+    operator fun invoke(vararg tensors: Tensor): Tensor {
+        params.addAll(tensors)
         val ret = this.forward(*tensors)
         ret.operator = this
         return ret
     }
+
+    companion object {
+        val EMPTY =
+            object : Operator() {
+                override fun forward(vararg tensors: Tensor) =
+                    throw IllegalStateException("Should not enter here")
+
+                override fun backward(outputGrad: Tensor) =
+                    throw IllegalStateException("Should not enter here")
+            }
+    }
 }
 
-abstract class BinaryOperator<T> : Operator<T>() {
-    abstract fun forward(left: Tensor<T>, right: Tensor<T>): Tensor<T>
+abstract class JvmOperator : Operator() {
+    fun saveForBackward(vararg a: NDArray) =
+        super.saveForBackward(*a.map { JvmTensor(it) }.toTypedArray())
 
-    abstract fun backward(outputGrad: T, left: Tensor<T>, right: Tensor<T>)
-
-    override fun forward(vararg tensors: Tensor<T>) = forward(tensors[0], tensors[1])
-
-    override fun backward(outputGrad: T) = backward(outputGrad, params[0], params[1])
+    fun savedNDArray() = savedTensor().map { (it as JvmTensor).data }
 }
 
-abstract class UnaryOperator<T> : Operator<T>() {
-    abstract fun forward(input: Tensor<T>): Tensor<T>
+abstract class JvmBinaryOperator : JvmOperator() {
+    abstract fun forward(left: NDArray, right: NDArray): NDArray
 
-    abstract fun backward(outputGrad: T, input: Tensor<T>)
+    abstract fun backward(
+        outputGrad: NDArray,
+        left: NDArray,
+        right: NDArray
+    ): Pair<NDArray, NDArray>
 
-    override fun forward(vararg tensors: Tensor<T>) = forward(tensors[0])
+    override fun forward(vararg tensors: Tensor): Tensor {
+        val res = forward((tensors[0] as JvmTensor).data, (tensors[1] as JvmTensor).data)
+        return JvmTensor(res, params[0].requiresGrad)
+    }
 
-    override fun backward(outputGrad: T) = backward(outputGrad, params[0])
+    override fun backward(outputGrad: Tensor): List<Tensor> {
+        val (leftGrad, rightGrad) =
+            backward(
+                (outputGrad as JvmTensor).data,
+                (params[0] as JvmTensor).data,
+                (params[1] as JvmTensor).data)
+
+        return listOf(JvmTensor(leftGrad), JvmTensor(rightGrad))
+    }
+}
+
+abstract class JvmUnaryOperator : JvmOperator() {
+    abstract fun forward(input: NDArray): NDArray
+
+    abstract fun backward(outputGrad: NDArray, input: NDArray): NDArray
+
+    override fun forward(vararg tensors: Tensor) =
+        JvmTensor(forward((tensors[0] as JvmTensor).data), params[0].requiresGrad)
+
+    override fun backward(outputGrad: Tensor): List<Tensor> {
+        return listOf(
+            JvmTensor(backward((outputGrad as JvmTensor).data, (params[0] as JvmTensor).data)))
+    }
 }

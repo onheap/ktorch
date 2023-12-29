@@ -25,6 +25,13 @@ dependencies {
     implementation("org.jetbrains.kotlinx:multik-core:0.2.2")
     implementation("org.jetbrains.kotlinx:multik-default:0.2.2")
     implementation("org.ejml:ejml-all:0.43.1")
+
+    // DJL dependencies
+    implementation(platform("ai.djl:bom:0.25.0"))
+    implementation("ai.djl:api")
+    implementation("ai.djl.pytorch:pytorch-engine")
+    implementation("ai.djl.pytorch:pytorch-native-cpu::osx-aarch64")
+    implementation("ai.djl.pytorch:pytorch-jni")
 }
 
 tasks.test {
@@ -45,12 +52,13 @@ tasks.withType<JavaExec> { jvmArgs(listOf("--add-modules", "jdk.incubator.vector
 
 // == Benchmark configs start ==
 jmh {
-    warmupIterations.set(3) // Default is 10
-    iterations.set(3) // Default is 10
+    warmupIterations.set(5) // Default is 10
+    iterations.set(5) // Default is 10
     //    warmup.set("10s")      // Default is '10 s'
     //    timeOnIteration.set("10s")  // Default is '10 s'
 
-    includes.addAll("benchmarks.NDArrayImplementationBenchmark")
+    //    includes.addAll("benchmarks.NDArrayImplementationBenchmark")
+    includes.addAll("benchmarks.BenchmarkLibraries")
 }
 
 tasks.jmhRunBytecodeGenerator { jvmArgs.addAll("--add-modules=jdk.incubator.vector") }

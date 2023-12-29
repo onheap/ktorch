@@ -828,7 +828,7 @@ public class NDArray implements Iterable<Float> {
     @Override
     public String toString() {
         final var df = new DecimalFormat("##.####");
-        String a = info();
+        String a = info() + "\n";
         int len = shape.length;
 
         a += "[".repeat(len);
@@ -866,12 +866,7 @@ public class NDArray implements Iterable<Float> {
     }
 
     public String info() {
-        return """
-                Info:
-                 Shape: %s
-                 Strides: %s
-                 Contiguous: %s
-                """
+        return "NDArray Shape: %s Strides: %s Contiguous: %s"
                 .formatted(Arrays.toString(shape), Arrays.toString(strides), getContiguous());
     }
 
