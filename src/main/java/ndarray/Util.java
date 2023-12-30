@@ -34,52 +34,6 @@ public class Util {
         return res;
     }
 
-    public static int getFlatIndex(int[] indices, int[] strides) {
-        int index = 0;
-        for (int i = 0; i < indices.length; i++) {
-            index += indices[i] * strides[i];
-        }
-        return index;
-    }
-
-    public static int[] getIndices(int flatIndex, int[] shape) {
-        return calIndices(flatIndex, shape, new int[shape.length]);
-    }
-
-    public static int[] calIndices(int flatIndex, int[] shape, int[] indices) {
-        for (int j = shape.length - 1; j >= 0; j--) {
-            indices[j] = flatIndex % shape[j];
-            flatIndex /= shape[j];
-        }
-        return indices;
-    }
-
-    public static int getSize(int[] shape) {
-        return Arrays.stream(shape).reduce(1, (a, b) -> a * b);
-    }
-
-    public static int[] delAtIndex(int[] A, int idxToDel) {
-        int len = A.length;
-        int[] B = new int[len - 1];
-
-        if (idxToDel == len - 1) {
-            System.arraycopy(A, 0, B, 0, len - 1);
-            return B;
-        }
-
-        if (idxToDel == 0) {
-            System.arraycopy(A, 1, B, 0, len - 1);
-            return B;
-        }
-
-        // copy first half
-        System.arraycopy(A, 0, B, 0, idxToDel + 1);
-
-        // copy second half
-        System.arraycopy(A, idxToDel + 1, B, idxToDel, len - idxToDel - 1);
-        return B;
-    }
-
     public static int[] reverseArray(int[] A) {
         int[] array = Arrays.copyOf(A, A.length);
         for (int i = 0; i < array.length / 2; i++) {
@@ -91,11 +45,15 @@ public class Util {
     }
 
     public static void assertShapesEqual(NDArray a, NDArray b) {
-        if (!Arrays.equals(a.shape, b.shape)) {
+        if (!shapesEqual(a, b)) {
             throw new IllegalArgumentException(
                     "shapes not equal, a: %s, b: %s"
                             .formatted(Arrays.toString(a.shape), Arrays.toString(b.shape)));
         }
+    }
+
+    public static boolean shapesEqual(NDArray a, NDArray b) {
+        return Arrays.equals(a.shape, b.shape);
     }
 
     public static boolean elementwiseOperable(NDArray a, NDArray b) {

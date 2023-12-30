@@ -12,6 +12,10 @@ class JvmTensor(
 
     override fun size(): Int = data.size
 
+    override fun get(vararg indices: Int): Float {
+        return data[indices]
+    }
+
     override fun plus(x: Tensor): Tensor {
         return object : JvmBinaryOperator() {
             override fun forward(left: NDArray, right: NDArray): NDArray {
@@ -30,7 +34,7 @@ class JvmTensor(
             override fun forward(left: NDArray, right: NDArray) = left.mul(right)
 
             override fun backward(outputGrad: NDArray, left: NDArray, right: NDArray) =
-                left.mul(outputGrad) to right.mul(outputGrad)
+                right.mul(outputGrad) to left.mul(outputGrad)
         }(this, x)
     }
 
@@ -81,17 +85,16 @@ class JvmTensor(
                 // logsumexp
                 val x = input
                 val c = x.max(1)
-                val logsumexp = x.sub(c.reshape(intArrayOf(-1, 1))).exp().sum(1).log().add(c)
+                val logsumexp = x.sub(c.reshape(-1, 1)).exp().sum(1).log().add(c)
 
-                val output = x.sub(logsumexp.reshape(intArrayOf(-1, 1)))
+                val output = x.sub(logsumexp.reshape(-1, 1))
                 saveForBackward(output)
                 return output
             }
 
             override fun backward(outputGrad: NDArray, input: NDArray): NDArray {
                 val (output) = this.savedNDArray()
-                return outputGrad.sub(
-                    output.exp().mul(outputGrad.sum(1).reshape(intArrayOf(-1, 1))))
+                return outputGrad.sub(output.exp().mul(outputGrad.sum(1).reshape(-1, 1)))
             }
         }(this)
     }

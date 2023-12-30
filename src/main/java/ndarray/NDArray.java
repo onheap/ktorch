@@ -1,5 +1,6 @@
 package ndarray;
 
+import static ndarray.ShapeUtil.*;
 import static ndarray.Util.*;
 
 import java.text.DecimalFormat;
@@ -14,9 +15,6 @@ import jdk.incubator.vector.VectorSpecies;
 // There are lots of duplicate code that can be optimized on readability wise. However,
 // the Benchmark result of extracting common code fragments into functions is not good.
 public class NDArray implements Iterable<Float> {
-
-    public static final NDArray EMPTY = NDArray.of(new float[0]);
-
     private static final VectorSpecies<Float> SPECIES = FloatVector.SPECIES_PREFERRED;
     private static final int SPECIES_LEN = SPECIES.length();
 
@@ -36,12 +34,21 @@ public class NDArray implements Iterable<Float> {
         return NDArray.of(other.shape, Flags.getContiguous(other.flags));
     }
 
+    public static NDArray arange(int start, int end) {
+        float[] data = new float[end - start];
+        for (int i = 0; i < end - start; i++) {
+            data[i] = start + i;
+        }
+
+        return NDArray.of(data);
+    }
+
     public static NDArray of(int[] shape) {
         return NDArray.of(shape, Flags.Contiguous.C);
     }
 
     public static NDArray fill(int[] shape, float v) {
-        float[] data = new float[Util.getSize(shape)];
+        float[] data = new float[ShapeUtil.getSize(shape)];
         Arrays.fill(data, v);
         return NDArray.of(shape, data, Flags.Contiguous.C);
     }
@@ -58,7 +65,7 @@ public class NDArray implements Iterable<Float> {
         return NDArray.of(
                 shape,
                 contiguous.calculateStrides(shape),
-                new float[Util.getSize(shape)],
+                new float[ShapeUtil.getSize(shape)],
                 Flags.setContiguous(Flags.ZERO, contiguous));
     }
 
@@ -105,7 +112,7 @@ public class NDArray implements Iterable<Float> {
     }
 
     public int getSize() {
-        return Util.getSize(shape);
+        return ShapeUtil.getSize(shape);
     }
 
     public Iterator<Float> iterator() {
@@ -131,32 +138,36 @@ public class NDArray implements Iterable<Float> {
                 if (isCContiguous) {
                     return data[curt++];
                 } else {
-                    return get(calIndices(curt++, shape, indices));
+                    return get(calculateIndices(curt++, shape, indices));
                 }
             }
         };
     }
 
-    public Iterator<int[]> indicesIterator() {
-        return new Iterator<>() {
-            private int curt = 0;
-            private final int size = getSize();
+    public Iterable<int[]> indices() {
+        return () ->
+                new Iterator<>() {
+                    private int curt = 0;
+                    private final int size = getSize();
 
-            @Override
-            public boolean hasNext() {
-                return curt < size;
-            }
+                    private final int[] indices = new int[shape.length];
 
-            @Override
-            public int[] next() {
-                if (curt >= size) {
-                    throw new NoSuchElementException(
-                            "iterator reached the end, curt: %d, size: %d".formatted(curt, size));
-                }
+                    @Override
+                    public boolean hasNext() {
+                        return curt < size;
+                    }
 
-                return getIndices(curt++);
-            }
-        };
+                    @Override
+                    public int[] next() {
+                        if (curt >= size) {
+                            throw new NoSuchElementException(
+                                    "iterator reached the end, curt: %d, size: %d"
+                                            .formatted(curt, size));
+                        }
+
+                        return calculateIndices(curt++, shape, indices);
+                    }
+                };
     }
 
     public Flags.Contiguous getContiguous() {
@@ -172,41 +183,6 @@ public class NDArray implements Iterable<Float> {
 
     public NDArray transpose() {
         return NDArray.of(reverseArray(this.shape), reverseArray(this.strides), this.data);
-    }
-
-    public static int[] broadcastShapes(int[] shapeA, int[] shapeB) {
-        if (shapeA.length < shapeB.length) {
-            int[] temp = shapeA;
-            shapeA = shapeB;
-            shapeB = temp;
-        }
-
-        int diff = shapeA.length - shapeB.length;
-        int len = shapeA.length;
-
-        int[] resShape = new int[len];
-
-        for (int i = len - 1; i >= 0; i--) {
-            int elementA = shapeA[i];
-
-            int indexB = i - diff;
-            int elementB;
-            if (indexB >= 0) {
-                elementB = shapeB[indexB];
-            } else {
-                elementB = 1;
-            }
-
-            if (elementA == elementB || elementA == 1 || elementB == 1) {
-                resShape[i] = Math.max(elementA, elementB);
-            } else {
-                throw new IllegalArgumentException(
-                        "Not broadcastable shapes, shapeA: %s, shapeB: %s."
-                                .formatted(Arrays.toString(shapeA), Arrays.toString(shapeB)));
-            }
-        }
-
-        return resShape;
     }
 
     private NDArray matmulCC(NDArray other) {
@@ -459,7 +435,11 @@ public class NDArray implements Iterable<Float> {
             return res;
         }
 
-        return NDArray.of(shape, iterateToFloatArray(this, other, Math::max));
+        if (shapesEqual(this, other)) {
+            return performIteratively(this, other, Math::max);
+        }
+
+        return performBroadcastly(this, other, Math::max);
     }
 
     public NDArray minimum(float v) {
@@ -510,7 +490,11 @@ public class NDArray implements Iterable<Float> {
             return res;
         }
 
-        return NDArray.of(shape, iterateToFloatArray(this, other, Math::min));
+        if (shapesEqual(this, other)) {
+            return performIteratively(this, other, Math::min);
+        }
+
+        return performBroadcastly(this, other, Math::min);
     }
 
     public NDArray sum() {
@@ -518,8 +502,12 @@ public class NDArray implements Iterable<Float> {
         return NDArray.of(arrOf(total));
     }
 
-    public NDArray sum(int axis) {
-        return reduceAlongAxis(axis, ElementWiseReduceOperator.SUM);
+    public NDArray sum(int dim) {
+        return reduceAlongDimension(dim, false, ElementWiseReduceOperator.SUM);
+    }
+
+    public NDArray sum(int dim, boolean keepDims) {
+        return reduceAlongDimension(dim, keepDims, ElementWiseReduceOperator.SUM);
     }
 
     public NDArray max() {
@@ -527,27 +515,30 @@ public class NDArray implements Iterable<Float> {
         return NDArray.of(arrOf(max));
     }
 
-    public NDArray max(int axis) {
-        return reduceAlongAxis(axis, ElementWiseReduceOperator.MAX);
+    public NDArray max(int dim) {
+        return reduceAlongDimension(dim, false, ElementWiseReduceOperator.MAX);
     }
 
-    private NDArray reduceAlongAxis(int axis, ElementWiseReduceOperator op) {
+    public NDArray max(int dim, boolean keepDims) {
+        return reduceAlongDimension(dim, keepDims, ElementWiseReduceOperator.MAX);
+    }
+
+    private NDArray reduceAlongDimension(int dim, boolean keepDims, ElementWiseReduceOperator op) {
         int len = shape.length;
-        if (axis < 0) {
-            axis = len - axis;
-        }
+        dim = dim < 0 ? len + dim : dim;
 
-        if (axis >= len) {
+        if (dim < 0 || dim >= len) {
             throw new IllegalArgumentException(
-                    "axis %d is out of bounds for array of dimension %d".formatted(axis, len));
+                    "dim %d is out of bounds for array of dimension %d".formatted(dim, len));
         }
 
-        int[] newShape = delAtIndex(shape, axis);
+        int[] newShape = reduceShape(shape, dim, keepDims);
+
         Flags.Contiguous contiguous = getContiguous();
-        if ((axis == len - 1 && contiguous == Flags.Contiguous.C)
-                || (axis == 0 && contiguous == Flags.Contiguous.F)) {
-            int axisLen = shape[axis];
-            float[] resData = new float[Util.getSize(newShape)];
+        if ((dim == len - 1 && contiguous == Flags.Contiguous.C)
+                || (dim == 0 && contiguous == Flags.Contiguous.F)) {
+            int axisLen = shape[dim];
+            float[] resData = new float[ShapeUtil.getSize(newShape)];
             for (int i = 0; i < resData.length; i++) {
                 resData[i] = elementWiseReduce(data, i * axisLen, axisLen, op);
             }
@@ -555,11 +546,21 @@ public class NDArray implements Iterable<Float> {
         }
 
         NDArray res = NDArray.fill(newShape, op.getInit());
+        int[] resIndices = new int[res.shape.length];
+        for (int[] indices : this.indices()) {
+            if (0 < dim) {
+                System.arraycopy(indices, 0, resIndices, 0, dim);
+            }
 
-        int[] indices = new int[shape.length];
-        for (int i = 0; i < data.length; i++) {
-            indices = Util.calIndices(i, shape, indices);
-            int[] resIndices = delAtIndex(indices, axis);
+            if ((dim + 1) <= (len - 1)) {
+                System.arraycopy(
+                        indices,
+                        dim + 1,
+                        resIndices,
+                        keepDims ? dim + 1 : dim,
+                        (len - 1) - (dim + 1) + 1);
+            }
+
             float f = this.get(indices);
             float curt = res.get(resIndices);
             res.set(resIndices, op.processSingle(curt, f));
@@ -584,8 +585,6 @@ public class NDArray implements Iterable<Float> {
     }
 
     public NDArray add(NDArray other) {
-        assertShapesEqual(this, other);
-
         if (elementwiseOperable(this, other)) {
             NDArray res = NDArray.zerosLike(this);
 
@@ -607,7 +606,11 @@ public class NDArray implements Iterable<Float> {
             return res;
         }
 
-        return NDArray.of(shape, iterateToFloatArray(this, other, (a, b) -> a + b));
+        if (shapesEqual(this, other)) {
+            return performIteratively(this, other, (a, b) -> a + b);
+        }
+
+        return performBroadcastly(this, other, (a, b) -> a + b);
     }
 
     public NDArray sub(NDArray other) {
@@ -634,7 +637,11 @@ public class NDArray implements Iterable<Float> {
             return res;
         }
 
-        return NDArray.of(shape, iterateToFloatArray(this, other, (a, b) -> a - b));
+        if (shapesEqual(this, other)) {
+            return performIteratively(this, other, (a, b) -> a - b);
+        }
+
+        return performBroadcastly(this, other, (a, b) -> a - b);
     }
 
     public NDArray mul(NDArray other) {
@@ -661,7 +668,11 @@ public class NDArray implements Iterable<Float> {
             return res;
         }
 
-        return NDArray.of(shape, iterateToFloatArray(this, other, (a, b) -> a * b));
+        if (shapesEqual(this, other)) {
+            return performIteratively(this, other, (a, b) -> a * b);
+        }
+
+        return performBroadcastly(this, other, (a, b) -> a * b);
     }
 
     public NDArray div(NDArray other) {
@@ -687,31 +698,63 @@ public class NDArray implements Iterable<Float> {
             return res;
         }
 
-        return NDArray.of(shape, iterateToFloatArray(this, other, (a, b) -> a / b));
+        if (shapesEqual(this, other)) {
+            return performIteratively(this, other, (a, b) -> a / b);
+        }
+
+        return performBroadcastly(this, other, (a, b) -> a / b);
     }
 
     public NDArray log() {
-        return performElementWiseOperator(ElementWiseUnaryOperator.LOG);
+        return performElementwise(ElementWiseUnaryOperator.LOG);
     }
 
     public NDArray exp() {
-        return performElementWiseOperator(ElementWiseUnaryOperator.EXP);
+        return performElementwise(ElementWiseUnaryOperator.EXP);
     }
 
-    private float[] iterateToFloatArray(NDArray a, NDArray b, FloatBinaryOperator op) {
+    private NDArray performIteratively(NDArray a, NDArray b, FloatBinaryOperator op) {
+        NDArray res = NDArray.of(a.shape);
         Iterator<Float> A = a.iterator();
         Iterator<Float> B = b.iterator();
-        float[] output = new float[a.getSize()];
+        float[] output = res.data;
 
         for (int i = 0; i < output.length; i++) {
             float va = A.next();
             float vb = B.next();
             output[i] = op.applyAsFloat(va, vb);
         }
-        return output;
+        return res;
     }
 
-    private float[] iterateToFloatArray(NDArray a, FloatUnaryOperator op) {
+    private NDArray performBroadcastly(NDArray a, NDArray b, FloatBinaryOperator op) {
+        NDArray res = NDArray.of(broadcastShapes(a.shape, b.shape));
+        int[] shapeA = a.shape;
+        int[] shapeB = b.shape;
+        int[] shapeC = res.shape;
+
+        int lenA = shapeA.length;
+        int lenB = shapeB.length;
+        int lenC = shapeC.length;
+
+        int[] indicesA = new int[lenA];
+        int[] indicesB = new int[lenB];
+        int[] indicesC = new int[lenC];
+
+        do {
+            System.arraycopy(indicesC, lenC - lenA, indicesA, 0, lenA);
+            System.arraycopy(indicesC, lenC - lenB, indicesB, 0, lenB);
+
+            ShapeUtil.constrainIndices(indicesA, shapeA);
+            ShapeUtil.constrainIndices(indicesB, shapeB);
+
+            res.set(indicesC, op.applyAsFloat(a.get(indicesA), b.get(indicesB)));
+        } while (ShapeUtil.increaseIndices(indicesC, shapeC));
+
+        return res;
+    }
+
+    private float[] performIteratively(NDArray a, FloatUnaryOperator op) {
         Iterator<Float> A = a.iterator();
         float[] output = new float[a.getSize()];
 
@@ -722,7 +765,7 @@ public class NDArray implements Iterable<Float> {
         return output;
     }
 
-    public NDArray performElementWiseOperator(FloatUnaryOperator op) {
+    public NDArray performElementwise(FloatUnaryOperator op) {
         assert elementwiseOperable(this);
         NDArray res = NDArray.zerosLike(this);
         float[] A = this.data;
@@ -735,7 +778,7 @@ public class NDArray implements Iterable<Float> {
         return res;
     }
 
-    public NDArray performElementWiseOperator(ElementWiseUnaryOperator op) {
+    public NDArray performElementwise(ElementWiseUnaryOperator op) {
         assert elementwiseOperable(this);
         NDArray res = NDArray.zerosLike(this);
         float[] A = this.data;
@@ -755,7 +798,7 @@ public class NDArray implements Iterable<Float> {
         return res;
     }
 
-    public NDArray performElementWiseOperator(NDArray other, ElementWiseBinaryOperator op) {
+    public NDArray performElementwise(NDArray other, ElementWiseBinaryOperator op) {
         NDArray res = NDArray.zerosLike(this);
 
         float[] A = this.data;
@@ -764,19 +807,19 @@ public class NDArray implements Iterable<Float> {
 
         int i = 0;
         for (; i < SPECIES.loopBound(data.length); i += SPECIES_LEN) {
-            var va = FloatVector.fromArray(SPECIES, this.data, i);
-            var vb = FloatVector.fromArray(SPECIES, other.data, i);
+            var va = FloatVector.fromArray(SPECIES, A, i);
+            var vb = FloatVector.fromArray(SPECIES, B, i);
             va.lanewise(op.vectorOperator, vb).intoArray(C, i);
         }
 
         for (; i < data.length; i++) {
-            C[i] = op.processSingle(A[i], B[i]);
+            C[i] = op.singleOperator.applyAsFloat(A[i], B[i]);
         }
 
         return res;
     }
 
-    public NDArray reshape(int[] newShape) {
+    public NDArray reshape(int... newShape) {
         int prod = 1;
         int negIdx = -1;
         for (int i = 0; i < newShape.length; i++) {
@@ -806,15 +849,15 @@ public class NDArray implements Iterable<Float> {
             return NDArray.of(newShape, data, Flags.Contiguous.C);
         }
 
-        return NDArray.of(newShape, iterateToFloatArray(this, v -> v));
+        return NDArray.of(newShape, performIteratively(this, v -> v));
     }
 
     private int getFlatIndex(int[] indices) {
-        return Util.getFlatIndex(indices, strides);
+        return ShapeUtil.getFlatIndex(indices, strides);
     }
 
     private int[] getIndices(int flatIndex) {
-        return Util.getIndices(flatIndex, shape);
+        return ShapeUtil.getIndices(flatIndex, shape);
     }
 
     public float get(int[] indices) {
@@ -872,12 +915,16 @@ public class NDArray implements Iterable<Float> {
 
     // test code
     public NDArray addNew(NDArray other) {
-        assertShapesEqual(this, other);
         final ElementWiseBinaryOperator op = ElementWiseBinaryOperator.ADD;
 
         if (elementwiseOperable(this, other)) {
-            return performElementWiseOperator(other, op);
+            return performElementwise(other, op);
         }
-        return NDArray.of(shape, iterateToFloatArray(this, other, op::processSingle));
+
+        if (shapesEqual(this, other)) {
+            return performIteratively(this, other, op.singleOperator);
+        }
+
+        return performBroadcastly(this, other, op.singleOperator);
     }
 }

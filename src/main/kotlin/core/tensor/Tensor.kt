@@ -13,8 +13,12 @@ interface Tensor {
             return JvmTensor(NDArray.of(shape, data), requiresGrad = requiresGrad)
         }
 
-        fun onesLike(tensor: Tensor): JvmTensor {
-            return JvmTensor(NDArray.fill(tensor.shape(), 1F))
+        fun onesLike(tensor: Tensor): Tensor {
+            return JvmTensor(NDArray.onesLike((tensor as JvmTensor).data))
+        }
+
+        fun zerosLike(tensor: Tensor): Tensor {
+            return JvmTensor(NDArray.zerosLike((tensor as JvmTensor).data))
         }
     }
 
@@ -25,6 +29,8 @@ interface Tensor {
     fun shape(): IntArray
 
     fun size(): Int
+
+    fun get(vararg indices: Int): Float
 
     operator fun plus(x: Tensor): Tensor
 
@@ -72,7 +78,7 @@ interface Tensor {
 
     fun backward() {
         // backward can only be called for scalar tensors
-        this.grad = Tensor.onesLike(this)
+        this.grad = onesLike(this)
 
         for (t in deepWalk().reversed()) {
             check(t.requiresGrad) { throw IllegalStateException("requireGrad is false") }
@@ -90,5 +96,9 @@ interface Tensor {
                 }
             }
         }
+    }
+
+    fun zeroGrad() {
+        this.grad = zerosLike(this)
     }
 }

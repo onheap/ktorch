@@ -12,6 +12,7 @@ import org.jetbrains.kotlinx.multik.ndarray.data.*
 import org.jetbrains.kotlinx.multik.ndarray.operations.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import tools.*
 
 typealias MKNDArray = org.jetbrains.kotlinx.multik.ndarray.data.NDArray<Float, DN>
 
@@ -63,42 +64,13 @@ class NDArrayTest {
 
     @Test
     fun testNdArray() {
-        val A = NDArray.of(FloatArray(12) { i -> (i + 1).toFloat() })
-        val B = A.reshape(arrOf(4, 3))
+        val a = NDArray.arange(0, 12).reshape(4, 3)
 
-        val a = B.sum(0)
-        assertNDArraysEqual(a, NDArray.of(arrOf(3), arrOfF(22, 26, 30)))
+        val b = NDArray.arange(0, 6).reshape(2, 1, 3)
+        println(a)
+        println(b)
 
-        val b = B.sum(1)
-        assertNDArraysEqual(b, NDArray.of(arrOf(4), arrOfF(6, 15, 24, 33)))
-
-        val C = A.reshape(arrOf(2, 2, 3))
-
-        val c = C.sum(0)
-        assertNDArraysEqual(c, NDArray.of(arrOf(2, 3), arrOfF(8, 10, 12, 14, 16, 18)))
-
-        val d = C.sum(1)
-
-        assertNDArraysEqual(d, NDArray.of(arrOf(2, 3), arrOfF(5, 7, 9, 17, 19, 21)))
-
-        val e = C.sum(2)
-
-        assertNDArraysEqual(e, NDArray.of(arrOf(2, 2), arrOfF(6, 15, 24, 33)))
-
-        val D = NDArray.of(arrOfF(16, 7, 17, 1, 7, 3, 8, 7)).reshape(arrOf(2, 2, 2))
-
-        val f = D.sum(0)
-        assertNDArraysEqual(f, NDArray.of(arrOf(2, 2), arrOfF(23, 10, 25, 8)))
-
-        val E = NDArray.of(arrOfF(1, 2)).reshape(arrOf(1, 2))
-        val g = E.sum(0)
-        assertNDArraysEqual(g, NDArray.of(arrOfF(1, 2)))
-        val h = E.sum(1)
-        assertNDArraysEqual(h, NDArray.of(arrOfF(3)))
-
-        val F = NDArray.of(arrOf(2, 2, 1), arrOfF(16, 9, 13, 16)).transpose()
-        val i = F.sum(0)
-        assertNDArraysEqual(i, NDArray.of(arrOf(2, 2), arrOfF(16, 13, 9, 16)))
+        println(a.add(b))
     }
 
     @Test
@@ -270,7 +242,7 @@ class NDArrayTest {
     }
 
     @Test
-    fun testReduceWithAxisCorrectness() {
+    fun testReduceAlongDimensionCorrectness() {
         // verify matrix
         repeat(100) {
             val m = Random.nextInt(1, 1024)
@@ -487,13 +459,13 @@ class NDArrayTest {
             val BT = B.transpose()
 
             val a = A.reshape(i, j).asDNArray()
-            val b = B.reshape(arrOf(i, j))
+            val b = B.reshape(i, j)
 
             assertNDArraysEqual(a, b)
             assertNDArraysEqual(a.transpose(), b.transpose())
 
             val at = AT.reshape(i, j).asDNArray()
-            val bt = BT.reshape(arrOf(i, j))
+            val bt = BT.reshape(i, j)
 
             assertNDArraysEqual(at, bt)
             assertNDArraysEqual(at.transpose(), bt.transpose())
@@ -535,52 +507,17 @@ class NDArrayTest {
             val BT = B.transpose()
 
             val a = A.reshape(newShape).asDNArray()
-            val b = B.reshape(newShape)
+            val b = B.reshape(*newShape)
 
             assertNDArraysEqual(a, b)
             assertNDArraysEqual(a.transpose(), b.transpose())
 
             val at = AT.reshape(newShape).asDNArray()
-            val bt = BT.reshape(newShape)
+            val bt = BT.reshape(*newShape)
 
             assertNDArraysEqual(at, bt)
             assertNDArraysEqual(at.transpose(), bt.transpose())
         }
-    }
-
-    private fun printMessage(message: String?) {
-        println(message)
-    }
-
-    private fun printObjects(vararg objs: Any?) {
-        println(objs.joinToString(" "))
-    }
-
-    private fun randomDivisibleBy(v: Int): Int {
-        var i = Random.nextInt(1, v + 1)
-        while (i == 0 || v % i != 0) {
-            i = Random.nextInt(v)
-        }
-        return i
-    }
-
-    private fun randomFloat(excludeZero: Boolean = false): Float {
-        var r = Random.nextFloat() - 0.5F
-        while (excludeZero && r == 0F) {
-            r = Random.nextFloat() - 0.5F
-        }
-        return r
-    }
-
-    private fun randomIntFloat(
-        range: IntRange = -64 until 64,
-        excludeZero: Boolean = false
-    ): Float {
-        var r = Random.nextInt(range.first, range.last)
-        while (excludeZero && r == 0) {
-            r = Random.nextInt(range.first, range.last)
-        }
-        return r.toFloat()
     }
 
     private fun assertNDArraysEqual(a: MKNDArray, b: NDArray, message: String? = null) {

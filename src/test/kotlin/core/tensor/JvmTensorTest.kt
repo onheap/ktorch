@@ -1,52 +1,85 @@
 package core.tensor
 
 import ai.djl.ndarray.NDArray as DJLNDArray
+import ai.djl.ndarray.NDArray
 import ai.djl.ndarray.NDManager
-import ai.djl.ndarray.types.Shape as DJLShape
+import ai.djl.training.GradientCollector
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-
-fun IntArray.toDJLShape() = DJLShape(this.map(Int::toLong))
+import tools.*
 
 class JvmTensorTest {
-    @Test
-    fun testDJL() {
-        NDManager.newBaseManager().use { manager ->
-            val a: DJLNDArray = manager.create(floatArrayOf())
 
-        }
+    private lateinit var manager: NDManager
+    private lateinit var gc: GradientCollector
+
+    @BeforeEach
+    fun setUp() {
+        manager = NDManager.newBaseManager()
+        gc = manager.engine.newGradientCollector()
     }
+
+    @AfterEach
+    fun tearDown() {
+        manager.close()
+        gc.close()
+    }
+
+    @Test fun testDJL() {}
 
     @Test
     fun test() {
         val fa = floatArrayOf(1F, 2F, 3F, 4F)
-        val fb = floatArrayOf(0F, 1F, 2F, 3F)
+        val fb = floatArrayOf(5F, 6F, 7F, 8F)
         val sa = intArrayOf(2, 2)
         val sb = intArrayOf(2, 2)
 
         val ta = Tensor.create(data = fa, shape = sa, requiresGrad = true)
         val tb = Tensor.create(data = fb, shape = sb, requiresGrad = true)
 
-        val tc = ta * tb
+        val da = manager.create(data = fa, shape = sa, requiresGrad = true)
+        val db = manager.create(data = fb, shape = sb, requiresGrad = true)
+
+        assertOpResEqual(BOp(da, db, NDArray::add), BOp(ta, tb, Tensor::plus))
+        assertOpResEqual(BOp(da, db, NDArray::mul), BOp(ta, tb, Tensor::times))
+        assertOpResEqual(BOp(da, db, NDArray::mul), BOp(ta, tb, Tensor::times))
+
+        //        assertOpResEqual(UOp(da, NDArray::log), UOp(ta, Tensor::log))
+
+        println(ta.logSoftmax())
+        println(da.logSoftmax(1))
+    }
+
+    private fun assertOpResEqual(D: UOp<DJLNDArray>, T: UOp<Tensor>) {
+        gc.zeroGradients()
+        T.v.zeroGrad()
+
+        val dc = D.fn(D.v)
+        val tc = T.fn(T.v)
+
+        assertNDArraysEqual(dc, tc)
+
         tc.backward()
-        println(tc.grad)
-        println(tb.grad)
-        println(ta.grad)
+        gc.backward(dc)
 
-        NDManager.newBaseManager().use { manager ->
-            val da: DJLNDArray =
-                manager.create(fa, sa.toDJLShape()).also { it.setRequiresGradient(true) }
-            val db: DJLNDArray =
-                manager.create(fb, sb.toDJLShape()).also { it.setRequiresGradient(true) }
+        assertNDArraysEqual(D.v.gradient, T.v.grad!!)
+    }
 
-            val dc = da.mul(db).also { it.setRequiresGradient(true) }
+    private fun assertOpResEqual(D: BOp<DJLNDArray>, T: BOp<Tensor>) {
+        gc.zeroGradients()
+        T.a.zeroGrad()
+        T.b.zeroGrad()
 
-            val gc = manager.engine.newGradientCollector()
+        val dc = D.fn(D.a, D.b)
+        val tc = T.fn(T.a, T.b)
 
-            gc.backward(dc)
+        assertNDArraysEqual(dc, tc)
 
-            println(dc.gradient)
-            println(db.gradient)
-            println(da.gradient)
-        }
+        tc.backward()
+        gc.backward(dc)
+
+        assertNDArraysEqual(D.a.gradient, T.a.grad!!)
+        assertNDArraysEqual(D.b.gradient, T.b.grad!!)
     }
 }

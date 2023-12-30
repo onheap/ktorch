@@ -52,13 +52,13 @@ tasks.withType<JavaExec> { jvmArgs(listOf("--add-modules", "jdk.incubator.vector
 
 // == Benchmark configs start ==
 jmh {
-    warmupIterations.set(5) // Default is 10
-    iterations.set(5) // Default is 10
+    warmupIterations.set(3) // Default is 10
+    iterations.set(3) // Default is 10
     //    warmup.set("10s")      // Default is '10 s'
     //    timeOnIteration.set("10s")  // Default is '10 s'
 
-    //    includes.addAll("benchmarks.NDArrayImplementationBenchmark")
-    includes.addAll("benchmarks.BenchmarkLibraries")
+    includes.addAll("benchmarks.NDArrayImplementationBenchmark")
+    //    includes.addAll("benchmarks.BenchmarkLibraries")
 }
 
 tasks.jmhRunBytecodeGenerator { jvmArgs.addAll("--add-modules=jdk.incubator.vector") }
