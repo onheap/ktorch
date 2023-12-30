@@ -1,76 +1,34 @@
 package ndarray
 
+import ai.djl.ndarray.NDManager
 import kotlin.random.Random
-import kotlin.test.assertEquals
 import ndarray.Util.*
-import org.jetbrains.kotlinx.multik.api.linalg.dot
-import org.jetbrains.kotlinx.multik.api.math.exp
-import org.jetbrains.kotlinx.multik.api.math.log
-import org.jetbrains.kotlinx.multik.api.mk
-import org.jetbrains.kotlinx.multik.api.ndarray
-import org.jetbrains.kotlinx.multik.ndarray.data.*
-import org.jetbrains.kotlinx.multik.ndarray.operations.*
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import tools.*
 
-typealias MKNDArray = org.jetbrains.kotlinx.multik.ndarray.data.NDArray<Float, DN>
-
-fun MKNDArray.reshape(newShape: IntArray): MKNDArray {
-    return when (val newRank = newShape.size) {
-        1 -> this.reshape(newShape[0]).asDNArray()
-        2 -> this.reshape(newShape[0], newShape[1]).asDNArray()
-        3 -> this.reshape(newShape[0], newShape[1], newShape[2]).asDNArray()
-        4 -> this.reshape(newShape[0], newShape[1], newShape[2], newShape[3]).asDNArray()
-        else ->
-            this.reshape(
-                    newShape[0],
-                    newShape[1],
-                    newShape[2],
-                    newShape[3],
-                    *newShape.slice(4 until newRank).toIntArray())
-                .asDNArray()
-    }
-}
-
 class NDArrayTest {
-    @Test
-    fun testMk() {
-        val a =
-            mk.ndarray(
-                mk[
-                    mk[1, 2, 3],
-                    mk[4, 5, 6],
-                ])
-        val b =
-            mk.ndarray(
-                mk[
-                    mk[1, 2],
-                    mk[3, 4],
-                    mk[5, 6],
-                ])
 
-        a.transpose()
+    private lateinit var manager: NDManager
 
-        val c = a.dot(b)
-        assertEquals(
-            mk.ndarray(
-                mk[
-                    mk[22, 28],
-                    mk[49, 64],
-                ]),
-            c)
+    @BeforeEach
+    fun setUp() {
+        manager = NDManager.newBaseManager()
+    }
+
+    @AfterEach
+    fun tearDown() {
+        manager.close()
     }
 
     @Test
-    fun testNdArray() {
-        val a = NDArray.arange(0, 12).reshape(4, 3)
+    fun test() {
+        val a = NDArray.of(arrOfF(1))
 
-        val b = NDArray.arange(0, 6).reshape(2, 1, 3)
-        println(a)
+        val b = a.sum(0)
+
         println(b)
-
-        println(a.add(b))
     }
 
     @Test
@@ -85,15 +43,15 @@ class NDArrayTest {
             val fa = FloatArray(m * n) { randomFloat() }
             val fb = FloatArray(n * p) { randomFloat() }
 
-            val A = mk.ndarray(fa, m, n)
-            val B = mk.ndarray(fb, n, p)
+            val A = manager.create(fa, m, n)
+            val B = manager.create(fb, n, p)
             val C = A.dot(B)
 
             val a = NDArray.of(arrOf(m, n), fa)
             val b = NDArray.of(arrOf(n, p), fb)
             val c = a.matmul(b)
 
-            assertNDArraysEqual(C.asDNArray(), c)
+            assertNDArrayEquals(C, c)
         }
     }
 
@@ -108,10 +66,10 @@ class NDArrayTest {
 
             val f = FloatArray(m * n) { randomFloat() }
 
-            val A = mk.ndarray(f, m, n).transpose()
+            val A = manager.create(f, m, n).transpose()
             val a = NDArray(intArrayOf(m, n), f).transpose()
 
-            assertNDArraysEqual(A.asDNArray(), a)
+            assertNDArrayEquals(A, a)
         }
 
         // verify random
@@ -122,10 +80,10 @@ class NDArrayTest {
             printMessage(shape.joinToString(" X ", "A: "))
 
             val f = FloatArray(size) { randomFloat() }
-            val A = mk.ndarray(f.toList(), shape, dimensionOf(rank)).asDNArray().transpose()
+            val A = manager.create(f, shape).transpose()
             val a = NDArray(shape, f).transpose()
 
-            assertNDArraysEqual(A, a)
+            assertNDArrayEquals(A, a)
         }
     }
 
@@ -141,15 +99,15 @@ class NDArrayTest {
             val fa = FloatArray(m * n) { randomFloat() }
             val fb = FloatArray(n * p) { randomFloat() }
 
-            val A = mk.ndarray(fa, m, n)
-            val B = mk.ndarray(fb, p, n).transpose()
+            val A = manager.create(fa, m, n)
+            val B = manager.create(fb, p, n).transpose()
             val C = A.dot(B)
 
             val a = NDArray(intArrayOf(m, n), fa)
             val b = NDArray(intArrayOf(p, n), fb).transpose()
             val c = a.matmul(b)
 
-            assertNDArraysEqual(C.asDNArray(), c)
+            assertNDArrayEquals(C, c)
         }
     }
 
@@ -165,15 +123,15 @@ class NDArrayTest {
             val fa = FloatArray(m * n) { randomFloat() }
             val fb = FloatArray(n * p) { randomFloat() }
 
-            val A = mk.ndarray(fa, n, m).transpose()
-            val B = mk.ndarray(fb, n, p)
+            val A = manager.create(fa, n, m).transpose()
+            val B = manager.create(fb, n, p)
             val C = A.dot(B)
 
             val a = NDArray(intArrayOf(n, m), fa).transpose()
             val b = NDArray(intArrayOf(n, p), fb)
             val c = a.matmul(b)
 
-            assertNDArraysEqual(C.asDNArray(), c)
+            assertNDArrayEquals(C, c)
         }
     }
 
@@ -189,15 +147,15 @@ class NDArrayTest {
             val fa = FloatArray(m * n) { randomFloat() }
             val fb = FloatArray(n * p) { randomFloat() }
 
-            val A = mk.ndarray(fa, n, m).transpose()
-            val B = mk.ndarray(fb, p, n).transpose()
+            val A = manager.create(fa, n, m).transpose()
+            val B = manager.create(fb, p, n).transpose()
             val C = A.dot(B)
 
             val a = NDArray(intArrayOf(n, m), fa).transpose()
             val b = NDArray(intArrayOf(p, n), fb).transpose()
             val c = a.matmul(b)
 
-            assertNDArraysEqual(C.asDNArray(), c)
+            assertNDArrayEquals(C, c)
         }
     }
 
@@ -212,14 +170,14 @@ class NDArrayTest {
 
             val f = FloatArray(m * n) { randomIntFloat() }
 
-            val A = mk.ndarray(f, m, n)
+            val A = manager.create(f, m, n)
             val B = NDArray(arrOf(m, n), f)
 
-            assertEquals(A.sum(), B.sum().asScalar(), 0.1F)
-            assertEquals(A.transpose().sum(), B.transpose().sum().asScalar(), 0.1F)
+            assertNDArrayEquals(A.sum(), B.sum())
+            assertNDArrayEquals(A.transpose().sum(), B.transpose().sum())
 
-            assertEquals(A.max()!!, B.max().asScalar(), 0.1F)
-            assertEquals(A.transpose().max()!!, B.transpose().max().asScalar(), 0.1F)
+            assertNDArrayEquals(A.max(), B.max())
+            assertNDArrayEquals(A.transpose().max(), B.transpose().max())
         }
 
         // verify random
@@ -230,14 +188,14 @@ class NDArrayTest {
             printMessage(shape.joinToString(" X ", "A: "))
 
             val f = FloatArray(size) { randomIntFloat() }
-            val A = mk.ndarray(f.toList(), shape, dimensionOf(rank)).asDNArray()
+            val A = manager.create(f, shape)
             val B = NDArray(shape, f)
 
-            assertEquals(A.sum(), B.sum().asScalar(), 0.1F)
-            assertEquals(A.transpose().sum(), B.transpose().sum().asScalar(), 0.1F)
+            assertNDArrayEquals(A.sum(), B.sum())
+            assertNDArrayEquals(A.transpose().sum(), B.transpose().sum())
 
-            assertEquals(A.max()!!, B.max().asScalar(), 0.1F)
-            assertEquals(A.transpose().max()!!, B.transpose().max().asScalar(), 0.1F)
+            assertNDArrayEquals(A.max(), B.max())
+            assertNDArrayEquals(A.transpose().max(), B.transpose().max())
         }
     }
 
@@ -252,45 +210,45 @@ class NDArrayTest {
 
             val f = FloatArray(m * n) { randomFloat() }
 
-            val A = mk.ndarray(f, m, n)
+            val A = manager.create(f, m, n)
             val B = NDArray(arrOf(m, n), f)
 
             for (i in 0 until 2) {
-                assertNDArraysEqual(mk.math.sumD2(A, i).asDNArray(), B.sum(i))
-                assertNDArraysEqual(mk.math.maxD2(A, i).asDNArray(), B.max(i))
+                assertNDArrayEquals(A.sum(arrOf(i)), B.sum(i))
+                assertNDArrayEquals(A.max(arrOf(i)), B.max(i))
             }
 
             val C = A.transpose()
             val D = B.transpose()
             for (i in 0 until 2) {
-                assertNDArraysEqual(mk.math.sumD2(C, i).asDNArray(), D.sum(i))
-                assertNDArraysEqual(mk.math.maxD2(C, i).asDNArray(), D.max(i))
+                assertNDArrayEquals(C.sum(arrOf(i)), D.sum(i))
+                assertNDArrayEquals(C.max(arrOf(i)), D.max(i))
             }
         }
 
         // verify random
         repeat(100) {
-            val rank = 3
-            val shape = IntArray(rank) { Random.nextInt(1, 3) }
+            val rank = Random.nextInt(1, 5)
+            val shape = IntArray(rank) { Random.nextInt(1, 6) }
             val size = shape.fold(1, Int::times)
             printMessage(shape.joinToString(" X ", "A: "))
 
-            val f = FloatArray(size) { randomIntFloat(-20..20) }
+            val f = FloatArray(size) { randomIntFloat() }
 
-            val A = mk.ndarray(f, shape[0], shape[1], shape[2])
+            val A = manager.create(f, shape)
             val B = NDArray(shape, f)
 
-            for (i in 0..2) {
-                assertNDArraysEqual(mk.math.sumD3(A, i).asDNArray(), B.sum(i))
-                assertNDArraysEqual(mk.math.maxD3(A, i).asDNArray(), B.max(i))
+            for (i in 0 until A.shape.dimension()) {
+                assertNDArrayEquals(A.sum(arrOf(i)), B.sum(i))
+                assertNDArrayEquals(A.max(arrOf(i)), B.max(i))
             }
 
             val C = A.transpose()
             val D = B.transpose()
 
-            for (i in 0..2) {
-                assertNDArraysEqual(mk.math.sumD3(C, i).asDNArray(), D.sum(i))
-                assertNDArraysEqual(mk.math.maxD3(C, i).asDNArray(), D.max(i))
+            for (i in 0 until C.shape.dimension()) {
+                assertNDArrayEquals(C.sum(arrOf(i)), D.sum(i))
+                assertNDArrayEquals(C.max(arrOf(i)), D.max(i))
             }
         }
     }
@@ -307,8 +265,8 @@ class NDArrayTest {
             val fa = FloatArray(m * n) { randomIntFloat(-20..20) }
             val fb = FloatArray(m * n) { randomIntFloat(excludeZero = true) }
 
-            val A = mk.ndarray(fa, m, n)
-            val B = mk.ndarray(fb, m, n)
+            val A = manager.create(fa, m, n)
+            val B = manager.create(fb, m, n)
             val AT = A.transpose()
             val BT = B.transpose()
 
@@ -318,29 +276,29 @@ class NDArrayTest {
             val DT = D.transpose()
 
             // CC
-            assertNDArraysEqual(A.plus(B).asDNArray(), C.add(D))
-            assertNDArraysEqual(A.plus(B).asDNArray(), C.addNew(D))
-            assertNDArraysEqual(A.minus(B).asDNArray(), C.sub(D))
-            assertNDArraysEqual(A.times(B).asDNArray(), C.mul(D))
-            assertNDArraysEqual(A.div(B).asDNArray(), C.div(D))
-            assertNDArraysEqual(A.maximum(B).asDNArray(), C.maximum(D))
-            assertNDArraysEqual(A.minimum(B).asDNArray(), C.minimum(D))
-            assertNDArraysEqual(A.log().asDNArray(), C.log())
-            assertNDArraysEqual(A.exp().asDNArray(), C.exp())
+            assertNDArrayEquals(A.add(B), C.add(D))
+            assertNDArrayEquals(A.add(B), C.addNew(D))
+            assertNDArrayEquals(A.sub(B), C.sub(D))
+            assertNDArrayEquals(A.mul(B), C.mul(D))
+            assertNDArrayEquals(A.div(B), C.div(D))
+            assertNDArrayEquals(A.maximum(B), C.maximum(D))
+            assertNDArrayEquals(A.minimum(B), C.minimum(D))
+            assertNDArrayEquals(A.log(), C.log())
+            assertNDArrayEquals(A.exp(), C.exp())
 
             // FF
-            assertNDArraysEqual(AT.plus(BT).asDNArray(), CT.add(DT))
-            assertNDArraysEqual(AT.plus(BT).asDNArray(), CT.addNew(DT))
-            assertNDArraysEqual(AT.minus(BT).asDNArray(), CT.sub(DT))
-            assertNDArraysEqual(AT.times(BT).asDNArray(), CT.mul(DT))
-            assertNDArraysEqual(AT.div(BT).asDNArray(), CT.div(DT))
-            assertNDArraysEqual(AT.maximum(BT).asDNArray(), CT.maximum(DT))
-            assertNDArraysEqual(AT.minimum(BT).asDNArray(), CT.minimum(DT))
-            assertNDArraysEqual(AT.log().asDNArray(), CT.log())
-            assertNDArraysEqual(AT.exp().asDNArray(), CT.exp())
+            assertNDArrayEquals(AT.add(BT), CT.add(DT))
+            assertNDArrayEquals(AT.add(BT), CT.addNew(DT))
+            assertNDArrayEquals(AT.sub(BT), CT.sub(DT))
+            assertNDArrayEquals(AT.mul(BT), CT.mul(DT))
+            assertNDArrayEquals(AT.div(BT), CT.div(DT))
+            assertNDArrayEquals(AT.maximum(BT), CT.maximum(DT))
+            assertNDArrayEquals(AT.minimum(BT), CT.minimum(DT))
+            assertNDArrayEquals(AT.log(), CT.log())
+            assertNDArrayEquals(AT.exp(), CT.exp())
 
-            val a = mk.ndarray(fa, n, m)
-            val b = mk.ndarray(fb, n, m)
+            val a = manager.create(fa, n, m)
+            val b = manager.create(fb, n, m)
             val at = a.transpose()
             val bt = b.transpose()
 
@@ -350,22 +308,22 @@ class NDArrayTest {
             val dt = d.transpose()
 
             // CF
-            assertNDArraysEqual(A.plus(bt).asDNArray(), C.add(dt))
-            assertNDArraysEqual(A.plus(bt).asDNArray(), C.addNew(dt))
-            assertNDArraysEqual(A.minus(bt).asDNArray(), C.sub(dt))
-            assertNDArraysEqual(A.times(bt).asDNArray(), C.mul(dt))
-            assertNDArraysEqual(A.div(bt).asDNArray(), C.div(dt))
-            assertNDArraysEqual(A.maximum(bt).asDNArray(), C.maximum(dt))
-            assertNDArraysEqual(A.minimum(bt).asDNArray(), C.minimum(dt))
+            assertNDArrayEquals(A.add(bt), C.add(dt))
+            assertNDArrayEquals(A.add(bt), C.addNew(dt))
+            assertNDArrayEquals(A.sub(bt), C.sub(dt))
+            assertNDArrayEquals(A.mul(bt), C.mul(dt))
+            assertNDArrayEquals(A.div(bt), C.div(dt))
+            assertNDArrayEquals(A.maximum(bt), C.maximum(dt))
+            assertNDArrayEquals(A.minimum(bt), C.minimum(dt))
 
             // FC
-            assertNDArraysEqual(at.plus(B).asDNArray(), ct.add(D))
-            assertNDArraysEqual(at.plus(B).asDNArray(), ct.addNew(D))
-            assertNDArraysEqual(at.minus(B).asDNArray(), ct.sub(D))
-            assertNDArraysEqual(at.times(B).asDNArray(), ct.mul(D))
-            assertNDArraysEqual(at.div(B).asDNArray(), ct.div(D))
-            assertNDArraysEqual(at.maximum(B).asDNArray(), ct.maximum(D))
-            assertNDArraysEqual(at.minimum(B).asDNArray(), ct.minimum(D))
+            assertNDArrayEquals(at.add(B), ct.add(D))
+            assertNDArrayEquals(at.add(B), ct.addNew(D))
+            assertNDArrayEquals(at.sub(B), ct.sub(D))
+            assertNDArrayEquals(at.mul(B), ct.mul(D))
+            assertNDArrayEquals(at.div(B), ct.div(D))
+            assertNDArrayEquals(at.maximum(B), ct.maximum(D))
+            assertNDArrayEquals(at.minimum(B), ct.minimum(D))
         }
 
         // verify random
@@ -378,8 +336,8 @@ class NDArrayTest {
             val fa = FloatArray(size) { randomIntFloat(-20..20) }
             val fb = FloatArray(size) { randomIntFloat(excludeZero = true) }
 
-            val A = mk.ndarray(fa.toList(), shape, dimensionOf(rank))
-            val B = mk.ndarray(fb.toList(), shape, dimensionOf(rank))
+            val A = manager.create(fa, shape)
+            val B = manager.create(fb, shape)
             val AT = A.transpose()
             val BT = B.transpose()
 
@@ -389,28 +347,28 @@ class NDArrayTest {
             val DT = D.transpose()
 
             // CC
-            assertNDArraysEqual(A.plus(B).asDNArray(), C.add(D))
-            assertNDArraysEqual(A.minus(B).asDNArray(), C.sub(D))
-            assertNDArraysEqual(A.times(B).asDNArray(), C.mul(D))
-            assertNDArraysEqual(A.div(B).asDNArray(), C.div(D))
-            assertNDArraysEqual(A.maximum(B).asDNArray(), C.maximum(D))
-            assertNDArraysEqual(A.minimum(B).asDNArray(), C.minimum(D))
-            assertNDArraysEqual(A.log().asDNArray(), C.log())
-            assertNDArraysEqual(A.exp().asDNArray(), C.exp())
+            assertNDArrayEquals(A.add(B), C.add(D))
+            assertNDArrayEquals(A.sub(B), C.sub(D))
+            assertNDArrayEquals(A.mul(B), C.mul(D))
+            assertNDArrayEquals(A.div(B), C.div(D))
+            assertNDArrayEquals(A.maximum(B), C.maximum(D))
+            assertNDArrayEquals(A.minimum(B), C.minimum(D))
+            assertNDArrayEquals(A.log(), C.log())
+            assertNDArrayEquals(A.exp(), C.exp())
 
             // FF
-            assertNDArraysEqual(AT.plus(BT).asDNArray(), CT.add(DT))
-            assertNDArraysEqual(AT.minus(BT).asDNArray(), CT.sub(DT))
-            assertNDArraysEqual(AT.times(BT).asDNArray(), CT.mul(DT))
-            assertNDArraysEqual(AT.div(BT).asDNArray(), CT.div(DT))
-            assertNDArraysEqual(AT.maximum(BT).asDNArray(), CT.maximum(DT))
-            assertNDArraysEqual(AT.minimum(BT).asDNArray(), CT.minimum(DT))
-            assertNDArraysEqual(AT.log().asDNArray(), CT.log())
-            assertNDArraysEqual(AT.exp().asDNArray(), CT.exp())
+            assertNDArrayEquals(AT.add(BT), CT.add(DT))
+            assertNDArrayEquals(AT.sub(BT), CT.sub(DT))
+            assertNDArrayEquals(AT.mul(BT), CT.mul(DT))
+            assertNDArrayEquals(AT.div(BT), CT.div(DT))
+            assertNDArrayEquals(AT.maximum(BT), CT.maximum(DT))
+            assertNDArrayEquals(AT.minimum(BT), CT.minimum(DT))
+            assertNDArrayEquals(AT.log(), CT.log())
+            assertNDArrayEquals(AT.exp(), CT.exp())
 
             val reversedShape = shape.reversedArray()
-            val a = mk.ndarray(fa.toList(), reversedShape, dimensionOf(rank))
-            val b = mk.ndarray(fb.toList(), reversedShape, dimensionOf(rank))
+            val a = manager.create(fa, reversedShape)
+            val b = manager.create(fb, reversedShape)
             val at = a.transpose()
             val bt = b.transpose()
 
@@ -420,20 +378,89 @@ class NDArrayTest {
             val dt = d.transpose()
 
             // CF
-            assertNDArraysEqual(A.plus(bt).asDNArray(), C.add(dt))
-            assertNDArraysEqual(A.minus(bt).asDNArray(), C.sub(dt))
-            assertNDArraysEqual(A.times(bt).asDNArray(), C.mul(dt))
-            assertNDArraysEqual(A.div(bt).asDNArray(), C.div(dt))
-            assertNDArraysEqual(A.maximum(bt).asDNArray(), C.maximum(dt))
-            assertNDArraysEqual(A.minimum(bt).asDNArray(), C.minimum(dt))
+            assertNDArrayEquals(A.add(bt), C.add(dt))
+            assertNDArrayEquals(A.sub(bt), C.sub(dt))
+            assertNDArrayEquals(A.mul(bt), C.mul(dt))
+            assertNDArrayEquals(A.div(bt), C.div(dt))
+            assertNDArrayEquals(A.maximum(bt), C.maximum(dt))
+            assertNDArrayEquals(A.minimum(bt), C.minimum(dt))
 
             // FC
-            assertNDArraysEqual(at.plus(B).asDNArray(), ct.add(D))
-            assertNDArraysEqual(at.minus(B).asDNArray(), ct.sub(D))
-            assertNDArraysEqual(at.times(B).asDNArray(), ct.mul(D))
-            assertNDArraysEqual(at.div(B).asDNArray(), ct.div(D))
-            assertNDArraysEqual(at.maximum(B).asDNArray(), ct.maximum(D))
-            assertNDArraysEqual(at.minimum(B).asDNArray(), ct.minimum(D))
+            assertNDArrayEquals(at.add(B), ct.add(D))
+            assertNDArrayEquals(at.sub(B), ct.sub(D))
+            assertNDArrayEquals(at.mul(B), ct.mul(D))
+            assertNDArrayEquals(at.div(B), ct.div(D))
+            assertNDArrayEquals(at.maximum(B), ct.maximum(D))
+            assertNDArrayEquals(at.minimum(B), ct.minimum(D))
+        }
+
+        // verify broadcast
+        repeat(100) {
+            val rankA = Random.nextInt(1, 5)
+            val shapeA = IntArray(rankA) { Random.nextInt(1, 10) }
+            val sizeA = shapeA.fold(1, Int::times)
+
+            val rankB = Random.nextInt(1, 5)
+
+            val shapeB =
+                IntArray(rankB) { i ->
+                        val idxA = rankA - 1 - i
+
+                        val r = Random.nextInt(1, 10)
+
+                        when {
+                            idxA < 0 -> r
+                            shapeA[idxA] == 1 -> r
+                            r < 3 -> 1
+                            else -> shapeA[idxA]
+                        }
+                    }
+                    .reversedArray()
+
+            val sizeB = shapeB.fold(1, Int::times)
+
+            printMessage(shapeA.joinToString(" X ", "A: ") + shapeB.joinToString(" X ", ", B: "))
+
+            val fa = FloatArray(sizeA) { randomIntFloat(-20..20) }
+            val fb = FloatArray(sizeB) { randomIntFloat(excludeZero = true) }
+
+            val A = manager.create(fa, shapeA)
+            val B = manager.create(fb, shapeB)
+            val AT = A.transpose()
+            val BT = B.transpose()
+
+            val C = NDArray(shapeA, fa)
+            val D = NDArray(shapeB, fb)
+            val CT = C.transpose()
+            val DT = D.transpose()
+
+            // CC
+            assertNDArrayEquals(A.add(B), C.add(D))
+            assertNDArrayEquals(A.sub(B), C.sub(D))
+            assertNDArrayEquals(A.mul(B), C.mul(D))
+            assertNDArrayEquals(A.div(B), C.div(D))
+            assertNDArrayEquals(A.maximum(B), C.maximum(D))
+            assertNDArrayEquals(A.minimum(B), C.minimum(D))
+
+            val reversedShapeA = shapeA.reversedArray()
+            val reversedShapeB = shapeB.reversedArray()
+            val a = manager.create(fa, reversedShapeA)
+            val b = manager.create(fb, reversedShapeB)
+            val at = a.transpose()
+            val bt = b.transpose()
+
+            val c = NDArray(reversedShapeA, fa)
+            val d = NDArray(reversedShapeB, fb)
+            val ct = c.transpose()
+            val dt = d.transpose()
+
+            // CF
+            assertNDArrayEquals(A.add(bt), C.add(dt))
+            assertNDArrayEquals(A.sub(bt), C.sub(dt))
+            assertNDArrayEquals(A.mul(bt), C.mul(dt))
+            assertNDArrayEquals(A.div(bt), C.div(dt))
+            assertNDArrayEquals(A.maximum(bt), C.maximum(dt))
+            assertNDArrayEquals(A.minimum(bt), C.minimum(dt))
         }
     }
 
@@ -452,23 +479,23 @@ class NDArrayTest {
             val i = randomDivisibleBy(size)
             val j = size / i
 
-            val A = mk.ndarray(f, m, n)
+            val A = manager.create(f, m, n)
             val B = NDArray(intArrayOf(m, n), f)
 
             val AT = A.transpose()
             val BT = B.transpose()
 
-            val a = A.reshape(i, j).asDNArray()
+            val a = A.reshape(i.toLong(), j.toLong())
             val b = B.reshape(i, j)
 
-            assertNDArraysEqual(a, b)
-            assertNDArraysEqual(a.transpose(), b.transpose())
+            assertNDArrayEquals(a, b)
+            assertNDArrayEquals(a.transpose(), b.transpose())
 
-            val at = AT.reshape(i, j).asDNArray()
+            val at = AT.reshape(i.toLong(), j.toLong())
             val bt = BT.reshape(i, j)
 
-            assertNDArraysEqual(at, bt)
-            assertNDArraysEqual(at.transpose(), bt.transpose())
+            assertNDArrayEquals(at, bt)
+            assertNDArrayEquals(at.transpose(), bt.transpose())
         }
 
         // verify random
@@ -500,81 +527,23 @@ class NDArrayTest {
             printMessage(newShape.joinToString(" X ", "B: "))
 
             val f = FloatArray(size) { randomFloat() }
-            val A = mk.ndarray(f.toList(), shape, dimensionOf(rank)).asDNArray()
+            val A = manager.create(f, shape)
             val B = NDArray(shape, f)
 
             val AT = A.transpose()
             val BT = B.transpose()
 
-            val a = A.reshape(newShape).asDNArray()
+            val a = A.reshape(*newShape.toLongArray())
             val b = B.reshape(*newShape)
 
-            assertNDArraysEqual(a, b)
-            assertNDArraysEqual(a.transpose(), b.transpose())
+            assertNDArrayEquals(a, b)
+            assertNDArrayEquals(a.transpose(), b.transpose())
 
-            val at = AT.reshape(newShape).asDNArray()
+            val at = AT.reshape(*newShape.toLongArray())
             val bt = BT.reshape(*newShape)
 
-            assertNDArraysEqual(at, bt)
-            assertNDArraysEqual(at.transpose(), bt.transpose())
-        }
-    }
-
-    private fun assertNDArraysEqual(a: MKNDArray, b: NDArray, message: String? = null) {
-        assertArrayEquals(a.shape, b.shape)
-
-        val shape = a.shape
-        val len = shape.size
-        val indexes = IntArray(len)
-        val totalSize = shape.fold(1, Int::times)
-
-        for (i in 0 until totalSize) {
-            var temp = i
-            for (j in len - 1 downTo 0) {
-                indexes[j] = temp % shape[j]
-                temp /= shape[j]
-            }
-
-            assertEquals(a.get(indexes), b.get(indexes), 0.001F, message)
-        }
-    }
-
-    private fun assertNDArraysEqual(a: NDArray, b: NDArray, message: String? = null) {
-        assertArrayEquals(a.shape, b.shape)
-
-        val shape = a.shape
-        val len = shape.size
-        val indexes = IntArray(len)
-        val totalSize = shape.fold(1, Int::times)
-
-        for (i in 0 until totalSize) {
-            var temp = i
-            for (j in len - 1 downTo 0) {
-                indexes[j] = temp % shape[j]
-                temp /= shape[j]
-            }
-
-            assertEquals(a.get(indexes), b.get(indexes), 0.001F, message)
-        }
-    }
-
-    private fun assertNDArraysStrictEqual(a: NDArray, b: NDArray, message: String? = null) {
-        assertArrayEquals(a.shape, b.shape)
-        assertArrayEquals(a.strides, b.strides)
-
-        val shape = a.shape
-        val len = shape.size
-        val indexes = IntArray(len)
-        val totalSize = shape.fold(1, Int::times)
-
-        for (i in 0 until totalSize) {
-            var temp = i
-            for (j in len - 1 downTo 0) {
-                indexes[j] = temp % shape[j]
-                temp /= shape[j]
-            }
-
-            assertEquals(a.get(indexes), b.get(indexes), 0.001F, message)
+            assertNDArrayEquals(at, bt)
+            assertNDArrayEquals(at.transpose(), bt.transpose())
         }
     }
 }

@@ -26,8 +26,6 @@ class JvmTensorTest {
         gc.close()
     }
 
-    @Test fun testDJL() {}
-
     @Test
     fun test() {
         val fa = floatArrayOf(1F, 2F, 3F, 4F)
@@ -48,7 +46,7 @@ class JvmTensorTest {
         //        assertOpResEqual(UOp(da, NDArray::log), UOp(ta, Tensor::log))
 
         println(ta.logSoftmax())
-        println(da.logSoftmax(1))
+        println(da.logSoftmax(-1))
     }
 
     private fun assertOpResEqual(D: UOp<DJLNDArray>, T: UOp<Tensor>) {
@@ -58,12 +56,12 @@ class JvmTensorTest {
         val dc = D.fn(D.v)
         val tc = T.fn(T.v)
 
-        assertNDArraysEqual(dc, tc)
+        assertTensorEquals(dc, tc)
 
         tc.backward()
         gc.backward(dc)
 
-        assertNDArraysEqual(D.v.gradient, T.v.grad!!)
+        assertTensorEquals(D.v.gradient, T.v.grad!!)
     }
 
     private fun assertOpResEqual(D: BOp<DJLNDArray>, T: BOp<Tensor>) {
@@ -74,12 +72,12 @@ class JvmTensorTest {
         val dc = D.fn(D.a, D.b)
         val tc = T.fn(T.a, T.b)
 
-        assertNDArraysEqual(dc, tc)
+        assertTensorEquals(dc, tc)
 
         tc.backward()
         gc.backward(dc)
 
-        assertNDArraysEqual(D.a.gradient, T.a.grad!!)
-        assertNDArraysEqual(D.b.gradient, T.b.grad!!)
+        assertTensorEquals(D.a.gradient, T.a.grad!!)
+        assertTensorEquals(D.b.gradient, T.b.grad!!)
     }
 }

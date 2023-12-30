@@ -8,6 +8,7 @@ import kotlin.random.Random
 import kotlin.reflect.KFunction1
 import kotlin.reflect.KFunction2
 import kotlin.test.assertEquals
+import ndarray.NDArray
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 
 data class BOp<T>(val a: T, val b: T, val fn: KFunction2<T, T, T>)
@@ -24,27 +25,34 @@ fun NDManager.create(
     }
 }
 
+fun NDManager.create(data: FloatArray, a: Int, b: Int): DJLNDArray {
+    return this.create(data, Shape(a.toLong(), b.toLong()))
+}
+
 fun IntArray.toLongArray() = this.map(Int::toLong).toLongArray()
 
 fun LongArray.toIntArray() = this.map(Long::toInt).toIntArray()
 
-fun assertNDArraysEqual(a: DJLNDArray, b: Tensor, message: String = "") {
-    assertArrayEquals(a.shape.shape, b.shape().toLongArray())
-
-    val shape = a.shape.shape
-    val len = shape.size
-    val indexes = LongArray(len)
-    val totalSize = shape.fold(1, Long::times)
-
-    for (i in 0 until totalSize) {
-        var temp = i
-        for (j in len - 1 downTo 0) {
-            indexes[j] = temp % shape[j]
-            temp /= shape[j]
-        }
-
-        assertEquals(a.getFloat(*indexes), b.get(*indexes.toIntArray()), 0.001F, message)
+fun assertNDArrayEquals(a: DJLNDArray, b: NDArray, tol: Float = 0.001F, message: String = "") {
+    if (a.isScalar || b.isScalar) {
+        assertEquals(a.isScalar, b.isScalar, message)
+        assertEquals(a.getFloat(), b.asScalar(), tol, message)
+        return
     }
+
+    assertArrayEquals(a.shape.shape, b.shape.toLongArray())
+    assertArrayEquals(a.toFloatArray(), b.toArray(), tol, message)
+}
+
+fun assertTensorEquals(a: DJLNDArray, b: Tensor, tol: Float = 0.001F, message: String = "") {
+    if (a.isScalar || b.isScalar()) {
+        assertEquals(a.isScalar, b.isScalar(), message)
+        assertEquals(a.getFloat(), b.asScalar(), tol, message)
+        return
+    }
+
+    assertArrayEquals(a.shape.shape, b.shape().toLongArray())
+    assertArrayEquals(a.toFloatArray(), b.toArray(), tol, message)
 }
 
 fun printMessage(message: String?) {

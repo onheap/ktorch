@@ -57,6 +57,10 @@ public class NDArray implements Iterable<Float> {
         return NDArray.of(arrOf(data.length), data);
     }
 
+    public static NDArray of(float data) {
+        return NDArray.of(new int[0], arrOf(data));
+    }
+
     public static NDArray of(int[] shape, float[] data) {
         return NDArray.of(shape, data, Flags.Contiguous.C);
     }
@@ -174,8 +178,12 @@ public class NDArray implements Iterable<Float> {
         return Flags.getContiguous(flags);
     }
 
+    public boolean isScalar() {
+        return shape.length == 0 && getSize() == 1;
+    }
+
     public float asScalar() {
-        if (shape.length != 1 || shape[0] != 1) {
+        if (!isScalar()) {
             throw new IllegalArgumentException("Not a scalar");
         }
         return data[0];
@@ -411,8 +419,6 @@ public class NDArray implements Iterable<Float> {
     }
 
     public NDArray maximum(NDArray other) {
-        assertShapesEqual(this, other);
-
         if (elementwiseOperable(this, other)) {
             NDArray res = NDArray.zerosLike(this);
 
@@ -466,8 +472,6 @@ public class NDArray implements Iterable<Float> {
     }
 
     public NDArray minimum(NDArray other) {
-        assertShapesEqual(this, other);
-
         if (elementwiseOperable(this, other)) {
             NDArray res = NDArray.zerosLike(this);
 
@@ -499,7 +503,7 @@ public class NDArray implements Iterable<Float> {
 
     public NDArray sum() {
         float total = elementWiseReduce(data, 0, data.length, ElementWiseReduceOperator.SUM);
-        return NDArray.of(arrOf(total));
+        return NDArray.of(total);
     }
 
     public NDArray sum(int dim) {
@@ -512,7 +516,7 @@ public class NDArray implements Iterable<Float> {
 
     public NDArray max() {
         float max = elementWiseReduce(data, 0, data.length, ElementWiseReduceOperator.MAX);
-        return NDArray.of(arrOf(max));
+        return NDArray.of(max);
     }
 
     public NDArray max(int dim) {
@@ -533,6 +537,8 @@ public class NDArray implements Iterable<Float> {
         }
 
         int[] newShape = reduceShape(shape, dim, keepDims);
+
+        System.out.println(Arrays.toString(newShape));
 
         Flags.Contiguous contiguous = getContiguous();
         if ((dim == len - 1 && contiguous == Flags.Contiguous.C)
@@ -614,8 +620,6 @@ public class NDArray implements Iterable<Float> {
     }
 
     public NDArray sub(NDArray other) {
-        assertShapesEqual(this, other);
-
         if (elementwiseOperable(this, other)) {
             NDArray res = NDArray.zerosLike(this);
 
@@ -645,8 +649,6 @@ public class NDArray implements Iterable<Float> {
     }
 
     public NDArray mul(NDArray other) {
-        assertShapesEqual(this, other);
-
         if (elementwiseOperable(this, other)) {
             NDArray res = NDArray.zerosLike(this);
 
@@ -676,7 +678,6 @@ public class NDArray implements Iterable<Float> {
     }
 
     public NDArray div(NDArray other) {
-        assertShapesEqual(this, other);
         if (elementwiseOperable(this, other)) {
             NDArray res = NDArray.zerosLike(this);
 
@@ -866,6 +867,19 @@ public class NDArray implements Iterable<Float> {
 
     public void set(int[] indices, float v) {
         data[getFlatIndex(indices)] = v;
+    }
+
+    public float[] toArray() {
+        if (getContiguous() == Flags.Contiguous.C) {
+            return Arrays.copyOf(data, data.length);
+        }
+
+        Iterator<Float> it = iterator();
+        float[] res = new float[getSize()];
+        for (int i = 0; i < res.length; i++) {
+            res[i] = it.next();
+        }
+        return res;
     }
 
     @Override

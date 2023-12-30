@@ -30,6 +30,12 @@ interface Tensor {
 
     fun size(): Int
 
+    fun toArray(): FloatArray
+
+    fun isScalar(): Boolean
+
+    fun asScalar(): Float
+
     fun get(vararg indices: Int): Float
 
     operator fun plus(x: Tensor): Tensor

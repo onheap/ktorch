@@ -12,6 +12,12 @@ class JvmTensor(
 
     override fun size(): Int = data.size
 
+    override fun toArray(): FloatArray = data.toArray()
+
+    override fun isScalar(): Boolean = data.isScalar
+
+    override fun asScalar(): Float = data.asScalar()
+
     override fun get(vararg indices: Int): Float {
         return data[indices]
     }
