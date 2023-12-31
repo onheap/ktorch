@@ -110,8 +110,35 @@ public class ShapeUtil {
         return resShape;
     }
 
+    public static boolean shapesEqual(int[] shapeA, int[] shapeB) {
+        return Arrays.equals(shapeA, shapeB);
+    }
+
+    public static boolean isBroadcastedShapes(int[] shapeA, int[] shapeB) {
+        if (shapesEqual(shapeA, shapeB)) {
+            return false;
+        }
+
+        if (shapeA.length < shapeB.length) {
+            int[] temp = shapeA;
+            shapeA = shapeB;
+            shapeB = temp;
+        }
+
+        int diff = shapeA.length - shapeB.length;
+        int len = shapeA.length;
+
+        for (int i = len - 1; i >= 0; i--) {
+            int j = i - diff;
+            if (j >= 0 && (shapeA[i] != shapeB[j] && shapeA[i] != 1 && shapeB[j] != 1)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public static void main(String[] args) {
-        int[] res = reduceShape(arrOf(1, 2, 3), 2);
-        System.out.println("res = " + Arrays.toString(res));
+        var res = isBroadcastedShapes(arrOf(1, 2, 3), arrOf(2, 3));
+        System.out.println(res);
     }
 }

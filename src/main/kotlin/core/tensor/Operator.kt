@@ -54,7 +54,7 @@ abstract class JvmBinaryOperator : JvmOperator() {
 
     override fun forward(vararg tensors: Tensor): Tensor {
         val res = forward((tensors[0] as JvmTensor).data, (tensors[1] as JvmTensor).data)
-        return JvmTensor(res, params[0].requiresGrad)
+        return JvmTensor(res, params.any { it.requiresGrad })
     }
 
     override fun backward(outputGrad: Tensor): List<Tensor> {
@@ -74,7 +74,7 @@ abstract class JvmUnaryOperator : JvmOperator() {
     abstract fun backward(outputGrad: NDArray, input: NDArray): NDArray
 
     override fun forward(vararg tensors: Tensor) =
-        JvmTensor(forward((tensors[0] as JvmTensor).data), params[0].requiresGrad)
+        JvmTensor(forward((tensors[0] as JvmTensor).data), params.any { it.requiresGrad })
 
     override fun backward(outputGrad: Tensor): List<Tensor> {
         return listOf(

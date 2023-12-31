@@ -7,6 +7,8 @@ import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import jdk.incubator.vector.FloatVector;
 import jdk.incubator.vector.VectorOperators;
 import jdk.incubator.vector.VectorSpecies;
@@ -441,11 +443,7 @@ public class NDArray implements Iterable<Float> {
             return res;
         }
 
-        if (shapesEqual(this, other)) {
-            return performIteratively(this, other, Math::max);
-        }
-
-        return performBroadcastly(this, other, Math::max);
+        return perform(this, other, Math::max);
     }
 
     public NDArray minimum(float v) {
@@ -494,11 +492,7 @@ public class NDArray implements Iterable<Float> {
             return res;
         }
 
-        if (shapesEqual(this, other)) {
-            return performIteratively(this, other, Math::min);
-        }
-
-        return performBroadcastly(this, other, Math::min);
+        return perform(this, other, Math::min);
     }
 
     public NDArray sum() {
@@ -537,8 +531,6 @@ public class NDArray implements Iterable<Float> {
         }
 
         int[] newShape = reduceShape(shape, dim, keepDims);
-
-        System.out.println(Arrays.toString(newShape));
 
         Flags.Contiguous contiguous = getContiguous();
         if ((dim == len - 1 && contiguous == Flags.Contiguous.C)
@@ -641,11 +633,7 @@ public class NDArray implements Iterable<Float> {
             return res;
         }
 
-        if (shapesEqual(this, other)) {
-            return performIteratively(this, other, (a, b) -> a - b);
-        }
-
-        return performBroadcastly(this, other, (a, b) -> a - b);
+        return perform(this, other, (a, b) -> a - b);
     }
 
     public NDArray mul(NDArray other) {
@@ -670,11 +658,7 @@ public class NDArray implements Iterable<Float> {
             return res;
         }
 
-        if (shapesEqual(this, other)) {
-            return performIteratively(this, other, (a, b) -> a * b);
-        }
-
-        return performBroadcastly(this, other, (a, b) -> a * b);
+        return perform(this, other, (a, b) -> a * b);
     }
 
     public NDArray div(NDArray other) {
@@ -699,11 +683,7 @@ public class NDArray implements Iterable<Float> {
             return res;
         }
 
-        if (shapesEqual(this, other)) {
-            return performIteratively(this, other, (a, b) -> a / b);
-        }
-
-        return performBroadcastly(this, other, (a, b) -> a / b);
+        return perform(this, other, (a, b) -> a / b);
     }
 
     public NDArray log() {
@@ -714,7 +694,15 @@ public class NDArray implements Iterable<Float> {
         return performElementwise(ElementWiseUnaryOperator.EXP);
     }
 
-    private NDArray performIteratively(NDArray a, NDArray b, FloatBinaryOperator op) {
+    public static NDArray perform(NDArray a, NDArray b, FloatBinaryOperator op) {
+        if (shapesEqual(a, b)) {
+            return performIteratively(a, b, op);
+        }
+        return performBroadcastly(a, b, op);
+    }
+
+    private static NDArray performIteratively(NDArray a, NDArray b, FloatBinaryOperator op) {
+        assertShapesEqual(a, b);
         NDArray res = NDArray.of(a.shape);
         Iterator<Float> A = a.iterator();
         Iterator<Float> B = b.iterator();
@@ -728,7 +716,7 @@ public class NDArray implements Iterable<Float> {
         return res;
     }
 
-    private NDArray performBroadcastly(NDArray a, NDArray b, FloatBinaryOperator op) {
+    private static NDArray performBroadcastly(NDArray a, NDArray b, FloatBinaryOperator op) {
         NDArray res = NDArray.of(broadcastShapes(a.shape, b.shape));
         int[] shapeA = a.shape;
         int[] shapeB = b.shape;
@@ -799,7 +787,7 @@ public class NDArray implements Iterable<Float> {
         return res;
     }
 
-    public NDArray performElementwise(NDArray other, ElementWiseBinaryOperator op) {
+    private NDArray performElementwise(NDArray other, ElementWiseBinaryOperator op) {
         NDArray res = NDArray.zerosLike(this);
 
         float[] A = this.data;
@@ -885,7 +873,8 @@ public class NDArray implements Iterable<Float> {
     @Override
     public String toString() {
         final var df = new DecimalFormat("##.####");
-        String a = info() + "\n";
+        // String a = info() + "\n";
+        String a = "";
         int len = shape.length;
 
         a += "[".repeat(len);
@@ -923,8 +912,14 @@ public class NDArray implements Iterable<Float> {
     }
 
     public String info() {
-        return "NDArray Shape: %s Strides: %s Contiguous: %s"
-                .formatted(Arrays.toString(shape), Arrays.toString(strides), getContiguous());
+        final Function<int[], String> joinToStr =
+                (int[] arr) ->
+                        Arrays.stream(shape)
+                                .mapToObj(String::valueOf)
+                                .collect(Collectors.joining(",", "(", ")"));
+
+        return "NDArray: %s %s %s"
+                .formatted(joinToStr.apply(shape), joinToStr.apply(strides), getContiguous());
     }
 
     // test code

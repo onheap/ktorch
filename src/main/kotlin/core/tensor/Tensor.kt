@@ -1,6 +1,5 @@
 package core.tensor
 
-import java.lang.IllegalStateException
 import ndarray.NDArray
 
 interface Tensor {
@@ -38,13 +37,19 @@ interface Tensor {
 
     fun get(vararg indices: Int): Float
 
-    operator fun plus(x: Tensor): Tensor
+    operator fun plus(x: Tensor): Tensor = this.add(x)
 
-    operator fun minus(x: Tensor): Tensor
+    operator fun minus(x: Tensor): Tensor = this.sub(x)
 
-    operator fun times(x: Tensor): Tensor
+    operator fun times(x: Tensor): Tensor = this.mul(x)
 
     operator fun div(x: Tensor): Tensor
+
+    fun add(x: Tensor): Tensor
+
+    fun sub(x: Tensor): Tensor
+
+    fun mul(x: Tensor): Tensor
 
     fun matmul(x: Tensor): Tensor
 
@@ -71,14 +76,13 @@ interface Tensor {
 
             visited.add(t)
 
-            for (p in operator.params) {
+            for (p in t.operator.params) {
                 buildTopo(p)
             }
             topo.add(t)
         }
 
         buildTopo(this)
-
         return topo
     }
 
@@ -105,6 +109,8 @@ interface Tensor {
     }
 
     fun zeroGrad() {
-        this.grad = zerosLike(this)
+        if (this.grad != null) {
+            this.grad = zerosLike(this.grad!!)
+        }
     }
 }

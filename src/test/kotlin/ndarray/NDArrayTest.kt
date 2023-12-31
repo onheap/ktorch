@@ -28,7 +28,7 @@ class NDArrayTest {
 
         val b = a.sum(0)
 
-        println(b)
+        printObjects(b)
     }
 
     @Test
@@ -216,6 +216,9 @@ class NDArrayTest {
             for (i in 0 until 2) {
                 assertNDArrayEquals(A.sum(arrOf(i)), B.sum(i))
                 assertNDArrayEquals(A.max(arrOf(i)), B.max(i))
+
+                assertNDArrayEquals(A.sum(arrOf(i), true), B.sum(i, true))
+                assertNDArrayEquals(A.max(arrOf(i), true), B.max(i, true))
             }
 
             val C = A.transpose()
@@ -223,6 +226,9 @@ class NDArrayTest {
             for (i in 0 until 2) {
                 assertNDArrayEquals(C.sum(arrOf(i)), D.sum(i))
                 assertNDArrayEquals(C.max(arrOf(i)), D.max(i))
+
+                assertNDArrayEquals(C.sum(arrOf(i), true), D.sum(i, true))
+                assertNDArrayEquals(C.max(arrOf(i), true), D.max(i, true))
             }
         }
 
@@ -241,6 +247,9 @@ class NDArrayTest {
             for (i in 0 until A.shape.dimension()) {
                 assertNDArrayEquals(A.sum(arrOf(i)), B.sum(i))
                 assertNDArrayEquals(A.max(arrOf(i)), B.max(i))
+
+                assertNDArrayEquals(A.sum(arrOf(i), true), B.sum(i, true))
+                assertNDArrayEquals(A.max(arrOf(i), true), B.max(i, true))
             }
 
             val C = A.transpose()
@@ -249,6 +258,9 @@ class NDArrayTest {
             for (i in 0 until C.shape.dimension()) {
                 assertNDArrayEquals(C.sum(arrOf(i)), D.sum(i))
                 assertNDArrayEquals(C.max(arrOf(i)), D.max(i))
+
+                assertNDArrayEquals(C.sum(arrOf(i), true), D.sum(i, true))
+                assertNDArrayEquals(C.max(arrOf(i), true), D.max(i, true))
             }
         }
     }

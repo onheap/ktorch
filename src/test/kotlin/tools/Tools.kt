@@ -5,15 +5,13 @@ import ai.djl.ndarray.NDManager
 import ai.djl.ndarray.types.Shape
 import core.tensor.Tensor
 import kotlin.random.Random
-import kotlin.reflect.KFunction1
-import kotlin.reflect.KFunction2
 import kotlin.test.assertEquals
 import ndarray.NDArray
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 
-data class BOp<T>(val a: T, val b: T, val fn: KFunction2<T, T, T>)
+data class BOp<T>(val a: T, val b: T, val fn: (T, T) -> T)
 
-data class UOp<T>(val v: T, val fn: KFunction1<T, T>)
+data class UOp<T>(val v: T, val fn: (T) -> T)
 
 fun NDManager.create(
     data: FloatArray,
@@ -59,8 +57,16 @@ fun printMessage(message: String?) {
     println(message)
 }
 
-private fun printObjects(vararg objs: Any?) {
-    println(objs.joinToString(" "))
+fun printObjects(vararg objs: Any?) {
+    printMessage(objs.joinToString(" "))
+}
+
+fun printObjects(vertical: Boolean = false, vararg objs: Any?) {
+    if (vertical) {
+        printMessage(objs.joinToString("\n"))
+    } else {
+        printMessage(objs.joinToString(" "))
+    }
 }
 
 fun randomDivisibleBy(v: Int): Int {

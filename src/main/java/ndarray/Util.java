@@ -53,7 +53,7 @@ public class Util {
     }
 
     public static boolean shapesEqual(NDArray a, NDArray b) {
-        return Arrays.equals(a.shape, b.shape);
+        return ShapeUtil.shapesEqual(a.shape, b.shape);
     }
 
     public static boolean elementwiseOperable(NDArray a, NDArray b) {
