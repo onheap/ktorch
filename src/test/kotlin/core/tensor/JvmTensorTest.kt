@@ -78,10 +78,7 @@ class JvmTensorTest {
             val m = Random.nextInt(1, 128)
             val n = Random.nextInt(1, 128)
 
-            if (it % 10 == 0) {
-                print(it)
-                printMessage(" A: $m X $n, B: $m X $n")
-            }
+            printMessage(" A: $m X $n, B: $m X $n")
 
             val fa = FloatArray(m * n) { randomFloat() }
             val fb = FloatArray(m * n) { randomFloat(excludeZero = true) }
@@ -99,6 +96,7 @@ class JvmTensorTest {
             assertOpResEqual(UOp(da, NDArray::logSoftmax), UOp(ta, Tensor::logSoftmax))
             assertOpResEqual(UOp(da, NDArray::relu), UOp(ta, Tensor::relu))
             assertOpResEqual(UOp(da, NDArray::sum), UOp(ta, Tensor::sum), 0.1F)
+            assertOpResEqual(UOp(da, NDArray::mean), UOp(ta, Tensor::mean), 0.1F)
 
             assertOpResEqual(
                 BOp(da, db) { a, b ->
@@ -139,6 +137,7 @@ class JvmTensorTest {
             assertOpResEqual(BOp(da, db, NDArray::mul), BOp(ta, tb, Tensor::mul))
             assertOpResEqual(UOp(da, NDArray::relu), UOp(ta, Tensor::relu))
             assertOpResEqual(UOp(da, NDArray::sum), UOp(ta, Tensor::sum), 0.1F)
+            assertOpResEqual(UOp(da, NDArray::mean), UOp(ta, Tensor::mean), 0.1F)
 
             assertOpResEqual(
                 BOp(da, db) { a, b ->
@@ -199,6 +198,7 @@ class JvmTensorTest {
             assertOpResEqual(BOp(da, db, NDArray::mul), BOp(ta, tb, Tensor::mul))
             assertOpResEqual(UOp(da, NDArray::relu), UOp(ta, Tensor::relu))
             assertOpResEqual(UOp(da, NDArray::sum), UOp(ta, Tensor::sum), 0.1F)
+            assertOpResEqual(UOp(da, NDArray::mean), UOp(ta, Tensor::mean), 0.1F)
 
             assertOpResEqual(
                 BOp(da, db) { a, b ->

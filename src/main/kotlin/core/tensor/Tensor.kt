@@ -19,6 +19,10 @@ interface Tensor {
         fun zerosLike(tensor: Tensor): Tensor {
             return JvmTensor(NDArray.zerosLike((tensor as JvmTensor).data))
         }
+
+        fun zeros(vararg shape: Int): Tensor {
+            return JvmTensor(NDArray.of(shape))
+        }
     }
 
     var grad: Tensor?
@@ -35,7 +39,9 @@ interface Tensor {
 
     fun asScalar(): Float
 
-    fun get(vararg indices: Int): Float
+    operator fun get(vararg indices: Int): Float
+
+    operator fun set(vararg indices: Int, v: Float)
 
     operator fun plus(x: Tensor): Tensor = this.add(x)
 
@@ -58,6 +64,8 @@ interface Tensor {
     fun log(): Tensor
 
     fun relu(): Tensor
+
+    fun mean(): Tensor
 
     fun transpose(): Tensor
 

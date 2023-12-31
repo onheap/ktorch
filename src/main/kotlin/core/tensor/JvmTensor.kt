@@ -18,9 +18,9 @@ class JvmTensor(
 
     override fun asScalar(): Float = data.asScalar()
 
-    override fun get(vararg indices: Int): Float {
-        return data[indices]
-    }
+    override fun get(vararg indices: Int): Float = data[indices]
+
+    override fun set(vararg indices: Int, v: Float) = data.set(indices, v)
 
     override fun add(x: Tensor): Tensor {
         return object : JvmBinaryOperator() {
@@ -73,6 +73,13 @@ class JvmTensor(
         }(this)
     }
 
+    override fun mean(): Tensor {
+        return sum()
+            .mul(
+                Tensor.create(
+                    floatArrayOf(1F / size()), shape = IntArray(0), requiresGrad = requiresGrad))
+    }
+
     override fun transpose(): Tensor = TODO()
 
     override fun sum(): Tensor {
@@ -120,11 +127,7 @@ class JvmTensor(
         }(this)
     }
 
-    override fun toString(): String {
-        return data.toString()
-    }
-
-    fun sumBroadcastDimsGrad(grad: NDArray, param: NDArray): NDArray {
+    private fun sumBroadcastDimsGrad(grad: NDArray, param: NDArray): NDArray {
         val paramShape = param.shape
         val gradShape = grad.shape
 
@@ -141,5 +144,9 @@ class JvmTensor(
             }
         }
         return finalGrad
+    }
+
+    override fun toString(): String {
+        return data.toString()
     }
 }

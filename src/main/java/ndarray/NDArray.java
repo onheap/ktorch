@@ -604,11 +604,7 @@ public class NDArray implements Iterable<Float> {
             return res;
         }
 
-        if (shapesEqual(this, other)) {
-            return performIteratively(this, other, (a, b) -> a + b);
-        }
-
-        return performBroadcastly(this, other, (a, b) -> a + b);
+        return perform(this, other, (a, b) -> a + b);
     }
 
     public NDArray sub(NDArray other) {
