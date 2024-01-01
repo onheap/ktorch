@@ -2,6 +2,7 @@ package tools
 
 import ai.djl.ndarray.NDArray as DJLNDArray
 import ai.djl.ndarray.NDManager
+import ai.djl.ndarray.types.DataType
 import ai.djl.ndarray.types.Shape
 import core.tensor.Tensor
 import kotlin.random.Random
@@ -32,6 +33,8 @@ fun IntArray.toLongArray() = this.map(Int::toLong).toLongArray()
 fun LongArray.toIntArray() = this.map(Long::toInt).toIntArray()
 
 fun assertNDArrayEquals(a: DJLNDArray, b: NDArray, tol: Float = 0.001F, message: String = "") {
+    var a = if (a.dataType == DataType.FLOAT32) a else a.toType(DataType.FLOAT32, true)
+
     if (a.isScalar || b.isScalar) {
         assertEquals(a.isScalar, b.isScalar, message)
         assertEquals(a.getFloat(), b.asScalar(), tol, message)
@@ -43,6 +46,8 @@ fun assertNDArrayEquals(a: DJLNDArray, b: NDArray, tol: Float = 0.001F, message:
 }
 
 fun assertTensorEquals(a: DJLNDArray, b: Tensor, tol: Float = 0.001F, message: String = "") {
+    var a = if (a.dataType == DataType.FLOAT32) a else a.toType(DataType.FLOAT32, true)
+
     if (a.isScalar || b.isScalar()) {
         assertEquals(a.isScalar, b.isScalar(), message)
         assertEquals(a.getFloat(), b.asScalar(), tol, message)

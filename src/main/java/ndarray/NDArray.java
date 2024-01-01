@@ -59,7 +59,7 @@ public class NDArray implements Iterable<Float> {
         return NDArray.of(arrOf(data.length), data);
     }
 
-    public static NDArray of(float data) {
+    public static NDArray ofScalar(float data) {
         return NDArray.of(new int[0], arrOf(data));
     }
 
@@ -497,7 +497,7 @@ public class NDArray implements Iterable<Float> {
 
     public NDArray sum() {
         float total = elementWiseReduce(data, 0, data.length, ElementWiseReduceOperator.SUM);
-        return NDArray.of(total);
+        return NDArray.ofScalar(total);
     }
 
     public NDArray sum(int dim) {
@@ -510,7 +510,7 @@ public class NDArray implements Iterable<Float> {
 
     public NDArray max() {
         float max = elementWiseReduce(data, 0, data.length, ElementWiseReduceOperator.MAX);
-        return NDArray.of(max);
+        return NDArray.ofScalar(max);
     }
 
     public NDArray max(int dim) {
@@ -519,6 +519,84 @@ public class NDArray implements Iterable<Float> {
 
     public NDArray max(int dim, boolean keepDims) {
         return reduceAlongDimension(dim, keepDims, ElementWiseReduceOperator.MAX);
+    }
+
+    public NDArray argmax() {
+        if (getContiguous() == Flags.Contiguous.C) {
+            int maxIndex = 0;
+            float max = data[0];
+            for (int i = 0; i < data.length; i++) {
+                if (data[i] > max) {
+                    maxIndex = i;
+                    max = data[i];
+                }
+            }
+            return NDArray.ofScalar(maxIndex);
+        }
+
+        int len = shape.length;
+        int[] maxIndices = new int[len];
+        float max = data[0];
+
+        for (var indices : indices()) {
+            float v = get(indices);
+            if (v > max) {
+                max = v;
+                System.arraycopy(indices, 0, maxIndices, 0, len);
+            }
+        }
+
+        int base = 1;
+        int res = maxIndices[len - 1];
+        for (int i = len - 2; i >= 0; i--) {
+            base = base * shape[i + 1];
+            res += maxIndices[i] * base;
+        }
+
+        return NDArray.ofScalar(res);
+    }
+
+    public NDArray argmax(int dim) {
+        return argmax(dim, false);
+    }
+
+    public NDArray argmax(int dim, boolean keepDims) {
+        int len = shape.length;
+        dim = dim < 0 ? len + dim : dim;
+
+        if (dim < 0 || dim >= len) {
+            throw new IllegalArgumentException(
+                    "dim %d is out of bounds for array of dimension %d".formatted(dim, len));
+        }
+
+        int[] newShape = reduceShape(shape, dim, keepDims);
+
+        NDArray res = NDArray.fill(newShape, 0);
+        int[] dimMaxIndices = new int[len];
+        int[] resIndices = new int[res.shape.length];
+        for (int[] indices : this.indices()) {
+            if (0 < dim) {
+                System.arraycopy(indices, 0, resIndices, 0, dim);
+            }
+
+            if ((dim + 1) <= (len - 1)) {
+                System.arraycopy(
+                        indices,
+                        dim + 1,
+                        resIndices,
+                        keepDims ? dim + 1 : dim,
+                        (len - 1) - (dim + 1) + 1);
+            }
+
+            float v = this.get(indices);
+            int dimMaxIdx = (int) res.get(resIndices);
+            System.arraycopy(indices, 0, dimMaxIndices, 0, len);
+            dimMaxIndices[dim] = dimMaxIdx;
+            if (v > get(dimMaxIndices)) {
+                res.set(resIndices, indices[dim]);
+            }
+        }
+        return res;
     }
 
     private NDArray reduceAlongDimension(int dim, boolean keepDims, ElementWiseReduceOperator op) {

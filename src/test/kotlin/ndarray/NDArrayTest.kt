@@ -24,9 +24,11 @@ class NDArrayTest {
 
     @Test
     fun test() {
-        val a = NDArray.of(arrOfF(1))
+        val a = NDArray.of(arrOfF(1, 3, 4, 2, 6, 0)).reshape(3, 2).transpose()
 
-        val b = a.sum(0)
+        println(a)
+
+        val b = a.argmax()
 
         printObjects(b)
     }
@@ -178,6 +180,9 @@ class NDArrayTest {
 
             assertNDArrayEquals(A.max(), B.max())
             assertNDArrayEquals(A.transpose().max(), B.transpose().max())
+
+            assertNDArrayEquals(A.argMax(), B.argmax())
+            assertNDArrayEquals(A.transpose().argMax(), B.transpose().argmax())
         }
 
         // verify random
@@ -196,6 +201,9 @@ class NDArrayTest {
 
             assertNDArrayEquals(A.max(), B.max())
             assertNDArrayEquals(A.transpose().max(), B.transpose().max())
+
+            assertNDArrayEquals(A.argMax(), B.argmax())
+            assertNDArrayEquals(A.transpose().argMax(), B.transpose().argmax())
         }
     }
 
@@ -216,6 +224,7 @@ class NDArrayTest {
             for (i in 0 until 2) {
                 assertNDArrayEquals(A.sum(arrOf(i)), B.sum(i))
                 assertNDArrayEquals(A.max(arrOf(i)), B.max(i))
+                assertNDArrayEquals(A.argMax(i), B.argmax(i))
 
                 assertNDArrayEquals(A.sum(arrOf(i), true), B.sum(i, true))
                 assertNDArrayEquals(A.max(arrOf(i), true), B.max(i, true))
@@ -226,6 +235,7 @@ class NDArrayTest {
             for (i in 0 until 2) {
                 assertNDArrayEquals(C.sum(arrOf(i)), D.sum(i))
                 assertNDArrayEquals(C.max(arrOf(i)), D.max(i))
+                assertNDArrayEquals(C.argMax(i), D.argmax(i))
 
                 assertNDArrayEquals(C.sum(arrOf(i), true), D.sum(i, true))
                 assertNDArrayEquals(C.max(arrOf(i), true), D.max(i, true))
@@ -247,6 +257,7 @@ class NDArrayTest {
             for (i in 0 until A.shape.dimension()) {
                 assertNDArrayEquals(A.sum(arrOf(i)), B.sum(i))
                 assertNDArrayEquals(A.max(arrOf(i)), B.max(i))
+                assertNDArrayEquals(A.argMax(i), B.argmax(i))
 
                 assertNDArrayEquals(A.sum(arrOf(i), true), B.sum(i, true))
                 assertNDArrayEquals(A.max(arrOf(i), true), B.max(i, true))
@@ -258,6 +269,7 @@ class NDArrayTest {
             for (i in 0 until C.shape.dimension()) {
                 assertNDArrayEquals(C.sum(arrOf(i)), D.sum(i))
                 assertNDArrayEquals(C.max(arrOf(i)), D.max(i))
+                assertNDArrayEquals(C.argMax(i), D.argmax(i))
 
                 assertNDArrayEquals(C.sum(arrOf(i), true), D.sum(i, true))
                 assertNDArrayEquals(C.max(arrOf(i), true), D.max(i, true))
