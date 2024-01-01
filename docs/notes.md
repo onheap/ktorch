@@ -33,10 +33,14 @@ Implement Numpy _Broadcasting_ and _Dot Product_ in pure Java/Kotlin, and use SI
 
 
 ## Implement Simple NN
-https://github.com/tinygrad/tinygrad/blob/91a352a8e2697828a4b1eafa2bdc1a9a3b7deffa/tinygrad/tensor.py
 
 ### Implement backward
+https://github.com/tinygrad/tinygrad/blob/91a352a8e2697828a4b1eafa2bdc1a9a3b7deffa/tinygrad/tensor.py
+
 the original plan is to implement backward using closure same as the implementation in micrograd. however, after some investigation. I **suspect** that the closure may cause performance issues. so we transit to the tinygrad way   
 * https://proandroiddev.com/kotlin-vs-java-the-inside-scoop-on-closures-ae9a8d6ddba5
 * https://stackoverflow.com/questions/48140788/kotlin-higher-order-functions-costs
 * https://magdamiu.medium.com/high-performance-with-idiomatic-kotlin-d52e099d0df0
+
+### Implement MNIST
+https://github.com/tinygrad/tinygrad/blob/91a352a8e2697828a4b1eafa2bdc1a9a3b7deffa/test/mnist.py

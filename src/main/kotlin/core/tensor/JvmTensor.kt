@@ -3,7 +3,7 @@ package core.tensor
 import ndarray.NDArray
 
 class JvmTensor(
-    val data: NDArray,
+    var data: NDArray,
     override val requiresGrad: Boolean = false,
     override var operator: Operator = Operator.EMPTY,
     override var grad: Tensor? = null,
@@ -39,7 +39,23 @@ class JvmTensor(
         }(this, x)
     }
 
-    override fun sub(x: Tensor): Tensor = TODO()
+    override fun sub(x: Tensor): Tensor {
+        return object : JvmBinaryOperator() {
+            override fun forward(left: NDArray, right: NDArray): NDArray {
+                return left.sub(right)
+            }
+
+            override fun backward(
+                outputGrad: NDArray,
+                left: NDArray,
+                right: NDArray
+            ): Pair<NDArray, NDArray> {
+                return Pair(
+                    sumBroadcastDimsGrad(outputGrad, left),
+                    sumBroadcastDimsGrad(outputGrad.mul(NDArray.ofScalar(-1F)), right))
+            }
+        }(this, x)
+    }
 
     override fun mul(x: Tensor): Tensor {
         return object : JvmBinaryOperator() {

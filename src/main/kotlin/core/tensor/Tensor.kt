@@ -23,6 +23,10 @@ interface Tensor {
         fun zeros(vararg shape: Int): Tensor {
             return JvmTensor(NDArray.of(shape))
         }
+
+        fun createScalar(data: Float, requiresGrad: Boolean = false): Tensor {
+            return JvmTensor(NDArray.ofScalar(data), requiresGrad = requiresGrad)
+        }
     }
 
     var grad: Tensor?

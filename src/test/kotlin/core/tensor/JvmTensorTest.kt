@@ -92,6 +92,7 @@ class JvmTensorTest {
             val db = manager.create(data = fb, shape = shape, requiresGrad = true)
 
             assertOpResEqual(BOp(da, db, NDArray::add), BOp(ta, tb, Tensor::add))
+            assertOpResEqual(BOp(da, db, NDArray::sub), BOp(ta, tb, Tensor::sub))
             assertOpResEqual(BOp(da, db, NDArray::mul), BOp(ta, tb, Tensor::mul))
             assertOpResEqual(UOp(da, NDArray::logSoftmax), UOp(ta, Tensor::logSoftmax))
             assertOpResEqual(UOp(da, NDArray::relu), UOp(ta, Tensor::relu))
@@ -134,6 +135,7 @@ class JvmTensorTest {
             val db = manager.create(data = fb, shape = shape, requiresGrad = true)
 
             assertOpResEqual(BOp(da, db, NDArray::add), BOp(ta, tb, Tensor::add))
+            assertOpResEqual(BOp(da, db, NDArray::sub), BOp(ta, tb, Tensor::sub))
             assertOpResEqual(BOp(da, db, NDArray::mul), BOp(ta, tb, Tensor::mul))
             assertOpResEqual(UOp(da, NDArray::relu), UOp(ta, Tensor::relu))
             assertOpResEqual(UOp(da, NDArray::sum), UOp(ta, Tensor::sum), 0.1F)
@@ -195,6 +197,7 @@ class JvmTensorTest {
             val db = manager.create(data = fb, shape = shapeB, requiresGrad = true)
 
             assertOpResEqual(BOp(da, db, NDArray::add), BOp(ta, tb, Tensor::add))
+            assertOpResEqual(BOp(da, db, NDArray::sub), BOp(ta, tb, Tensor::sub))
             assertOpResEqual(BOp(da, db, NDArray::mul), BOp(ta, tb, Tensor::mul))
             assertOpResEqual(UOp(da, NDArray::relu), UOp(ta, Tensor::relu))
             assertOpResEqual(UOp(da, NDArray::sum), UOp(ta, Tensor::sum), 0.1F)

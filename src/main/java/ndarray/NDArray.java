@@ -91,6 +91,31 @@ public class NDArray implements Iterable<Float> {
         return new NDArray(shape, strides, data, flags);
     }
 
+    public static NDArray merge(NDArray... ndArrays) {
+        if (ndArrays.length == 0 || ndArrays[0].getContiguous() != Flags.Contiguous.C) {
+            throw new IllegalArgumentException("can not merge ndarrays");
+        }
+
+        int len = ndArrays.length;
+
+        NDArray first = ndArrays[0];
+        int size = first.getSize();
+        float[] data = new float[len * size];
+
+        for (int i = 0; i < len; i++) {
+            NDArray curt = ndArrays[i];
+            assert elementwiseOperable(first, curt);
+
+            System.arraycopy(curt.data, 0, data, i * size, size);
+        }
+
+        int[] newShape = new int[first.shape.length + 1];
+        newShape[0] = len;
+        System.arraycopy(first.shape, 0, newShape, 1, first.shape.length);
+
+        return NDArray.of(newShape, data);
+    }
+
     public NDArray(int[] shape, float[] data) {
         this.shape = shape;
         this.data = data;
@@ -519,6 +544,10 @@ public class NDArray implements Iterable<Float> {
 
     public NDArray max(int dim, boolean keepDims) {
         return reduceAlongDimension(dim, keepDims, ElementWiseReduceOperator.MAX);
+    }
+
+    public NDArray mean() {
+        return NDArray.ofScalar(sum().asScalar() / getSize());
     }
 
     public NDArray argmax() {

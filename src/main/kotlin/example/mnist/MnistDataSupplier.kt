@@ -17,7 +17,7 @@ import java.util.zip.GZIPInputStream
 private val MNIST_DIR = Path.of("mnist")
 
 // https://github.com/mikex86/scicore/blob/master/tests/src/test/java/me/mikex86/scicore/tests/mnist/MnistDataSupplier.kt
-class MnistDataSupplier(train: Boolean, shuffle: Boolean) {
+class MnistDataSupplier(train: Boolean) {
     private val imagesRAF: RandomAccessFile
     private val labelsRAF: RandomAccessFile
 
@@ -79,13 +79,21 @@ class MnistDataSupplier(train: Boolean, shuffle: Boolean) {
     fun get(idx: Int): Pair<Tensor, Tensor> {
         return X[idx] to Y[idx]
     }
+
+    fun size() = X.size
 }
 
 fun main() {
-    val s = MnistDataSupplier(true, false)
-    val (x, y) = s.get(9)
-    println((x as JvmTensor).data.reshape(28, 28).performElementwise { if (it == 0F) 1F else 8F })
-    println((y as JvmTensor).data)
+    val s = MnistDataSupplier(true)
+
+    for (i in 0 until 10) {
+        println("========")
+        val (x, y) = s.get(i)
+        println(
+            (x as JvmTensor).data.reshape(28, 28).performElementwise { if (it == 0F) 1F else 8F })
+        println((y as JvmTensor).data.argmax())
+        println("========")
+    }
 }
 
 @Throws(IOException::class, InterruptedException::class)
