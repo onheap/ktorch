@@ -103,7 +103,8 @@ interface Tensor {
         this.grad = onesLike(this)
 
         for (t in deepWalk().reversed()) {
-            check(t.requiresGrad) { throw IllegalStateException("requireGrad is false") }
+            if (!t.requiresGrad) continue
+
             t.grad ?: throw IllegalStateException("grad is null")
 
             if (t.operator.params.isEmpty()) {

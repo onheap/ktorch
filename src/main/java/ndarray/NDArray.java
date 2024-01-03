@@ -973,6 +973,30 @@ public class NDArray implements Iterable<Float> {
         return res;
     }
 
+    public float[][] toMatrix() {
+        if (shape.length != 2) {
+            throw new IllegalStateException(
+                    "Unable to convert to Matrix: shape: %s".formatted(Arrays.toString(shape)));
+        }
+
+        int m = shape[0];
+        int n = shape[1];
+        float[][] res = new float[m][n];
+
+        if (getContiguous() == Flags.Contiguous.C) {
+            for (int i = 0; i < m; i++) {
+                System.arraycopy(data, i * n, res[i], 0, n);
+            }
+            return res;
+        }
+
+        for (int[] idx : indices()) {
+            res[idx[0]][idx[1]] = get(idx);
+        }
+
+        return res;
+    }
+
     @Override
     public String toString() {
         final var df = new DecimalFormat("##.####");

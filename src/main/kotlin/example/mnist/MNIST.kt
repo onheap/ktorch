@@ -3,6 +3,7 @@ package example.mnist
 import core.tensor.JvmTensor
 import core.tensor.Tensor
 import kotlin.math.absoluteValue
+import kotlin.math.sqrt
 import kotlin.random.Random
 import ndarray.NDArray
 
@@ -10,6 +11,16 @@ import ndarray.NDArray
 
 infix fun Float.closeTo(other: Float): Boolean {
     return (this - other).absoluteValue < 0.01F
+}
+
+fun layerInit(inputSize: Int, outputSize: Int): Tensor {
+    return Tensor.create(
+        data =
+            FloatArray(inputSize * outputSize) {
+                (Random.nextFloat() * 2 - 1) / sqrt(inputSize.toFloat() * outputSize)
+            },
+        shape = intArrayOf(inputSize, outputSize),
+        requiresGrad = true)
 }
 
 data class SGD(val tensors: List<JvmTensor>, val lr: JvmTensor) {
@@ -23,17 +34,9 @@ data class SGD(val tensors: List<JvmTensor>, val lr: JvmTensor) {
 }
 
 class MnistNet {
-    val l1 =
-        Tensor.create(
-            data = FloatArray(784 * 128) { (Random.nextFloat() - 0.5F) * 2 },
-            shape = intArrayOf(784, 128),
-            requiresGrad = true) as JvmTensor
+    val l1 = layerInit(784, 128) as JvmTensor
 
-    val l2 =
-        Tensor.create(
-            data = FloatArray(128 * 10) { Random.nextFloat() - 0.5F },
-            shape = intArrayOf(128, 10),
-            requiresGrad = true) as JvmTensor
+    val l2 = layerInit(128, 10) as JvmTensor
 
     fun forward(x: Tensor): JvmTensor {
         return x.matmul(l1).relu().matmul(l2).logSoftmax() as JvmTensor
@@ -47,18 +50,14 @@ val train = MnistDataSupplier(true)
 val test = MnistDataSupplier(false)
 
 fun train(BS: Int = 128) {
-    for (i in 0 until 1000) {
+    for (i in 0 until 2000) {
         val sampIdxes = IntArray(BS) { Random.nextInt(0, train.size()) }
 
-        val xList = mutableListOf<NDArray>()
-        val yList = mutableListOf<NDArray>()
-
-        for (samp in sampIdxes) {
-            val (x, y) =
-                train.get(samp).let { (x, y) -> (x as JvmTensor).data to (y as JvmTensor).data }
-            xList.add(x)
-            yList.add(y)
-        }
+        val (xList, yList) =
+            sampIdxes
+                .map(train::get)
+                .map { (x, y) -> (x as JvmTensor).data to (y as JvmTensor).data }
+                .unzip()
 
         val X = JvmTensor(data = NDArray.merge(*xList.toTypedArray()), requiresGrad = true)
         val Y = JvmTensor(data = NDArray.merge(*yList.toTypedArray()), requiresGrad = true)
@@ -66,7 +65,7 @@ fun train(BS: Int = 128) {
         val outs = model.forward(X)
 
         // NLL loss
-        val y = Y.mul(Tensor.createScalar(-1F, requiresGrad = true))
+        val y = Y.mul(Tensor.createScalar(-1F))
         val loss = outs.mul(y).mean()
 
         loss.backward()

@@ -13,6 +13,7 @@ import java.nio.ByteOrder
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.zip.GZIPInputStream
+import tools.ImageUtil
 
 private val MNIST_DIR = Path.of("mnist")
 
@@ -89,8 +90,7 @@ fun main() {
     for (i in 0 until 10) {
         println("========")
         val (x, y) = s.get(i)
-        println(
-            (x as JvmTensor).data.reshape(28, 28).performElementwise { if (it == 0F) 1F else 8F })
+        ImageUtil.printGrayScaleImage((x as JvmTensor).data.reshape(28, 28).toMatrix())
         println((y as JvmTensor).data.argmax())
         println("========")
     }
