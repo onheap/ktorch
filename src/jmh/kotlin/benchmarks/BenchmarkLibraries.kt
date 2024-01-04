@@ -5,7 +5,7 @@ import ai.djl.ndarray.types.Shape
 import java.util.concurrent.TimeUnit
 import jdk.incubator.vector.*
 import kotlin.random.Random
-import ndarray.NDArray
+import ndarray.NDArrays
 import org.jetbrains.kotlinx.multik.api.linalg.dot
 import org.jetbrains.kotlinx.multik.api.mk
 import org.jetbrains.kotlinx.multik.api.ndarray
@@ -51,8 +51,8 @@ open class BenchmarkLibraries {
 
     @Benchmark
     fun NDArray_Matmul() {
-        val NA = NDArray.of(intArrayOf(size, size), A)
-        val NB = NDArray.of(intArrayOf(size, size), B)
+        val NA = NDArrays.of(intArrayOf(size, size), A)
+        val NB = NDArrays.of(intArrayOf(size, size), B)
 
         NA.matmul(NB)
     }

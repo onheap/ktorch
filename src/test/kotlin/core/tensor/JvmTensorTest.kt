@@ -56,8 +56,8 @@ class JvmTensorTest {
             printObjects(true, "b1 grad", b.gradient)
         }
 
-        val a2 = Tensor.create(data = fa, shape = sa, requiresGrad = true)
-        val b2 = Tensor.create(data = fb, shape = sb, requiresGrad = true)
+        val a2 = Tensors.create(data = fa, shape = sa, requiresGrad = true)
+        val b2 = Tensors.create(data = fb, shape = sb, requiresGrad = true)
 
         (a2 to b2).let { (a, b) ->
             val c = a.add(b) // 3
@@ -85,8 +85,8 @@ class JvmTensorTest {
 
             val shape = intArrayOf(m, n)
 
-            val ta = Tensor.create(data = fa, shape = shape, requiresGrad = true)
-            val tb = Tensor.create(data = fb, shape = shape, requiresGrad = true)
+            val ta = Tensors.create(data = fa, shape = shape, requiresGrad = true)
+            val tb = Tensors.create(data = fb, shape = shape, requiresGrad = true)
 
             val da = manager.create(data = fa, shape = shape, requiresGrad = true)
             val db = manager.create(data = fb, shape = shape, requiresGrad = true)
@@ -128,8 +128,8 @@ class JvmTensorTest {
             val fa = FloatArray(size) { randomFloat() }
             val fb = FloatArray(size) { randomFloat(excludeZero = true) }
 
-            val ta = Tensor.create(data = fa, shape = shape, requiresGrad = true)
-            val tb = Tensor.create(data = fb, shape = shape, requiresGrad = true)
+            val ta = Tensors.create(data = fa, shape = shape, requiresGrad = true)
+            val tb = Tensors.create(data = fb, shape = shape, requiresGrad = true)
 
             val da = manager.create(data = fa, shape = shape, requiresGrad = true)
             val db = manager.create(data = fb, shape = shape, requiresGrad = true)
@@ -190,8 +190,8 @@ class JvmTensorTest {
             val fa = FloatArray(sizeA) { randomFloat() }
             val fb = FloatArray(sizeB) { randomFloat(excludeZero = true) }
 
-            val ta = Tensor.create(data = fa, shape = shapeA, requiresGrad = true)
-            val tb = Tensor.create(data = fb, shape = shapeB, requiresGrad = true)
+            val ta = Tensors.create(data = fa, shape = shapeA, requiresGrad = true)
+            val tb = Tensors.create(data = fb, shape = shapeB, requiresGrad = true)
 
             val da = manager.create(data = fa, shape = shapeA, requiresGrad = true)
             val db = manager.create(data = fb, shape = shapeB, requiresGrad = true)
@@ -232,8 +232,8 @@ class JvmTensorTest {
         val sa = intArrayOf(2, 2)
         val sb = intArrayOf(2, 2)
 
-        val ta = Tensor.create(data = fa, shape = sa, requiresGrad = true)
-        val tb = Tensor.create(data = fb, shape = sb, requiresGrad = true)
+        val ta = Tensors.create(data = fa, shape = sa, requiresGrad = true)
+        val tb = Tensors.create(data = fb, shape = sb, requiresGrad = true)
 
         val da = manager.create(data = fa, shape = sa, requiresGrad = true)
         val db = manager.create(data = fb, shape = sb, requiresGrad = true)
@@ -253,7 +253,7 @@ class JvmTensorTest {
                 outa.sum()
             },
             BOp(ta, tb) { x, W ->
-                val m = Tensor.create(fc, shape = sc, requiresGrad = true)
+                val m = Tensors.create(fc, shape = sc, requiresGrad = true)
 
                 val out = x.matmul(W)
                 val outr = out.relu()

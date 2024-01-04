@@ -1,43 +1,18 @@
 package core.tensor
 
-import ndarray.NDArray
-
 interface Tensor {
-    companion object {
-        fun create(
-            data: FloatArray,
-            shape: IntArray = intArrayOf(data.size),
-            requiresGrad: Boolean = false
-        ): Tensor {
-            return JvmTensor(NDArray.of(shape, data), requiresGrad = requiresGrad)
-        }
-
-        fun onesLike(tensor: Tensor): Tensor {
-            return JvmTensor(NDArray.onesLike((tensor as JvmTensor).data))
-        }
-
-        fun zerosLike(tensor: Tensor): Tensor {
-            return JvmTensor(NDArray.zerosLike((tensor as JvmTensor).data))
-        }
-
-        fun zeros(vararg shape: Int): Tensor {
-            return JvmTensor(NDArray.of(shape))
-        }
-
-        fun createScalar(data: Float, requiresGrad: Boolean = false): Tensor {
-            return JvmTensor(NDArray.ofScalar(data), requiresGrad = requiresGrad)
-        }
-    }
 
     var grad: Tensor?
     var operator: Operator
-    val requiresGrad: Boolean
+    var requiresGrad: Boolean
 
     fun shape(): IntArray
 
     fun size(): Int
 
     fun toArray(): FloatArray
+
+    fun toMatrix(): Array<FloatArray>
 
     fun isScalar(): Boolean
 
@@ -47,19 +22,21 @@ interface Tensor {
 
     operator fun set(vararg indices: Int, v: Float)
 
-    operator fun plus(x: Tensor): Tensor = this.add(x)
+    fun reshape(vararg newShape: Int): Tensor
 
-    operator fun minus(x: Tensor): Tensor = this.sub(x)
+    operator fun plus(x: Tensor): Tensor
 
-    operator fun times(x: Tensor): Tensor = this.mul(x)
+    operator fun minus(x: Tensor): Tensor
+
+    operator fun times(x: Tensor): Tensor
 
     operator fun div(x: Tensor): Tensor
 
-    fun add(x: Tensor): Tensor
+    fun add(x: Tensor): Tensor = this.plus(x)
 
-    fun sub(x: Tensor): Tensor
+    fun sub(x: Tensor): Tensor = this.minus(x)
 
-    fun mul(x: Tensor): Tensor
+    fun mul(x: Tensor): Tensor = this.times(x)
 
     fun matmul(x: Tensor): Tensor
 
@@ -76,6 +53,10 @@ interface Tensor {
     fun sum(): Tensor
 
     fun logSoftmax(): Tensor
+
+    fun argmax(): Tensor
+
+    fun argmax(dim: Int, keepDims: Boolean = false): Tensor
 
     fun deepWalk(): List<Tensor> {
         val topo = mutableListOf<Tensor>()
@@ -100,7 +81,7 @@ interface Tensor {
 
     fun backward() {
         // backward can only be called for scalar tensors
-        this.grad = onesLike(this)
+        this.grad = Tensors.onesLike(this)
 
         for (t in deepWalk().reversed()) {
             if (!t.requiresGrad) continue
@@ -123,7 +104,7 @@ interface Tensor {
 
     fun zeroGrad() {
         if (this.grad != null) {
-            this.grad = zerosLike(this.grad!!)
+            this.grad = Tensors.zerosLike(this.grad!!)
         }
     }
 }

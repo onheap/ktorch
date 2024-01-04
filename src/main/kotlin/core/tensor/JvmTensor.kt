@@ -1,10 +1,11 @@
 package core.tensor
 
 import ndarray.NDArray
+import ndarray.NDArrays
 
 class JvmTensor(
     var data: NDArray,
-    override val requiresGrad: Boolean = false,
+    override var requiresGrad: Boolean = false,
     override var operator: Operator = Operator.EMPTY,
     override var grad: Tensor? = null,
 ) : Tensor {
@@ -14,6 +15,8 @@ class JvmTensor(
 
     override fun toArray(): FloatArray = data.toArray()
 
+    override fun toMatrix(): Array<FloatArray> = data.toMatrix()
+
     override fun isScalar(): Boolean = data.isScalar
 
     override fun asScalar(): Float = data.asScalar()
@@ -22,7 +25,9 @@ class JvmTensor(
 
     override fun set(vararg indices: Int, v: Float) = data.set(indices, v)
 
-    override fun add(x: Tensor): Tensor {
+    override fun reshape(vararg newShape: Int): Tensor = JvmTensor(data.reshape(*newShape))
+
+    override fun plus(x: Tensor): Tensor {
         return object : JvmBinaryOperator() {
             override fun forward(left: NDArray, right: NDArray): NDArray {
                 return left.add(right)
@@ -39,7 +44,7 @@ class JvmTensor(
         }(this, x)
     }
 
-    override fun sub(x: Tensor): Tensor {
+    override fun minus(x: Tensor): Tensor {
         return object : JvmBinaryOperator() {
             override fun forward(left: NDArray, right: NDArray): NDArray {
                 return left.sub(right)
@@ -52,12 +57,12 @@ class JvmTensor(
             ): Pair<NDArray, NDArray> {
                 return Pair(
                     sumBroadcastDimsGrad(outputGrad, left),
-                    sumBroadcastDimsGrad(outputGrad.mul(NDArray.ofScalar(-1F)), right))
+                    sumBroadcastDimsGrad(outputGrad.mul(NDArrays.ofScalar(-1F)), right))
             }
         }(this, x)
     }
 
-    override fun mul(x: Tensor): Tensor {
+    override fun times(x: Tensor): Tensor {
         return object : JvmBinaryOperator() {
             override fun forward(left: NDArray, right: NDArray) = left.mul(right)
 
@@ -84,16 +89,13 @@ class JvmTensor(
             override fun forward(input: NDArray) = input.maximum(0F)
 
             override fun backward(outputGrad: NDArray, input: NDArray): NDArray {
-                return NDArray.perform(outputGrad, input) { a, b -> if (b < 0) 0F else a }
+                return NDArrays.perform(outputGrad, input) { a, b -> if (b < 0) 0F else a }
             }
         }(this)
     }
 
     override fun mean(): Tensor {
-        return sum()
-            .mul(
-                Tensor.create(
-                    floatArrayOf(1F / size()), shape = IntArray(0), requiresGrad = requiresGrad))
+        return sum().mul(Tensors.createScalar(1F / size(), requiresGrad))
     }
 
     override fun transpose(): Tensor = TODO()
@@ -103,7 +105,7 @@ class JvmTensor(
             override fun forward(input: NDArray) = input.sum()
 
             override fun backward(outputGrad: NDArray, input: NDArray) =
-                outputGrad.mul(NDArray.onesLike(input))
+                outputGrad.mul(NDArrays.onesLike(input))
         }(this)
     }
 
@@ -137,11 +139,15 @@ class JvmTensor(
             }
 
             override fun backward(outputGrad: NDArray, input: NDArray): NDArray {
-                val (output) = this.savedNDArray()
+                val (output) = this.savedNDArrays()
                 return outputGrad.sub(output.exp().mul(outputGrad.sum(1).reshape(-1, 1)))
             }
         }(this)
     }
+
+    override fun argmax(): Tensor = JvmTensor(data.argmax())
+
+    override fun argmax(dim: Int, keepDims: Boolean): Tensor = JvmTensor(data.argmax(dim, keepDims))
 
     private fun sumBroadcastDimsGrad(grad: NDArray, param: NDArray): NDArray {
         val paramShape = param.shape
@@ -164,5 +170,13 @@ class JvmTensor(
 
     override fun toString(): String {
         return data.toString()
+    }
+
+    private fun copyToThis(x: Tensor) {
+        val ret = x as JvmTensor
+        this.data = ret.data
+        this.requiresGrad = ret.requiresGrad
+        this.operator = ret.operator
+        this.grad = ret.grad
     }
 }

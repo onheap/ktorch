@@ -24,7 +24,7 @@ class NDArrayTest {
 
     @Test
     fun test() {
-        val a = NDArray.of(arrOfF(1, 3, 4, 2, 6, 0)).reshape(3, 2).transpose()
+        val a = NDArrays.of(arrOfF(1, 3, 4, 2, 6, 0)).reshape(3, 2).transpose()
 
         println(a)
 
@@ -49,8 +49,8 @@ class NDArrayTest {
             val B = manager.create(fb, n, p)
             val C = A.dot(B)
 
-            val a = NDArray.of(arrOf(m, n), fa)
-            val b = NDArray.of(arrOf(n, p), fb)
+            val a = NDArrays.of(arrOf(m, n), fa)
+            val b = NDArrays.of(arrOf(n, p), fb)
             val c = a.matmul(b)
 
             assertNDArrayEquals(C, c)

@@ -28,10 +28,10 @@ abstract class Operator {
         val EMPTY =
             object : Operator() {
                 override fun forward(vararg tensors: Tensor) =
-                    throw IllegalStateException("Should not enter here")
+                    throw NotImplementedError("Should not enter here")
 
                 override fun backward(outputGrad: Tensor) =
-                    throw IllegalStateException("Should not enter here")
+                    throw NotImplementedError("Should not enter here")
             }
     }
 }
@@ -40,7 +40,7 @@ abstract class JvmOperator : Operator() {
     fun saveForBackward(vararg a: NDArray) =
         super.saveForBackward(*a.map { JvmTensor(it) }.toTypedArray())
 
-    fun savedNDArray() = savedTensor().map { (it as JvmTensor).data }
+    fun savedNDArrays() = savedTensor().map { (it as JvmTensor).data }
 }
 
 abstract class JvmBinaryOperator : JvmOperator() {

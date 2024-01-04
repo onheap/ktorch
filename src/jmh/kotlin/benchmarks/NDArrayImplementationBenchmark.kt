@@ -4,6 +4,7 @@ import java.util.concurrent.TimeUnit
 import jdk.incubator.vector.*
 import kotlin.random.Random
 import ndarray.NDArray
+import ndarray.NDArrays
 import org.openjdk.jmh.annotations.*
 
 @BenchmarkMode(Mode.AverageTime)
@@ -24,8 +25,8 @@ open class NDArrayImplementationBenchmark {
         A = FloatArray(size * size) { Random.nextFloat() }
         B = FloatArray(size * size) { Random.nextFloat() }
 
-        NA = NDArray.of(intArrayOf(size, size), A)
-        NB = NDArray.of(intArrayOf(size, size), B)
+        NA = NDArrays.of(intArrayOf(size, size), A)
+        NB = NDArrays.of(intArrayOf(size, size), B)
     }
 
     @Benchmark

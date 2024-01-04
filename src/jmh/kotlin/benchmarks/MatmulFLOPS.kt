@@ -4,6 +4,7 @@ import kotlin.math.sqrt
 import kotlin.random.Random
 import kotlin.system.measureNanoTime
 import ndarray.NDArray
+import ndarray.NDArrays
 import org.ejml.simple.SimpleMatrix
 import org.jetbrains.kotlinx.multik.api.linalg.dot
 import org.jetbrains.kotlinx.multik.api.mk
@@ -45,8 +46,8 @@ class MatmulFLOPS(val N: Int) {
     }
 
     fun NDArray_Matmul() {
-        val A = NDArray.of(intArrayOf(N, N), FloatArray(N * N) { Random.nextFloat() })
-        val B = NDArray.of(intArrayOf(N, N), FloatArray(N * N) { Random.nextFloat() })
+        val A = NDArrays.of(intArrayOf(N, N), FloatArray(N * N) { Random.nextFloat() })
+        val B = NDArrays.of(intArrayOf(N, N), FloatArray(N * N) { Random.nextFloat() })
 
         val nanos = measureNanoTime { A.matmul(B) }.toDouble()
 

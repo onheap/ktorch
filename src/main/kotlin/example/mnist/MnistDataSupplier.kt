@@ -1,7 +1,7 @@
 package example.mnist
 
-import core.tensor.JvmTensor
 import core.tensor.Tensor
+import core.tensor.Tensors
 import java.io.IOException
 import java.io.RandomAccessFile
 import java.net.URI
@@ -69,8 +69,8 @@ class MnistDataSupplier(train: Boolean) {
                 val data = FloatArray(height * width)
                 bf.get(data)
 
-                X.add(Tensor.create(data))
-                Y.add(Tensor.zeros(10).also { it[label.toInt()] = 1F })
+                X.add(Tensors.create(data))
+                Y.add(Tensors.zeros(10).also { it[label.toInt()] = 1F })
             }
         } catch (e: IOException) {
             throw RuntimeException(e)
@@ -87,11 +87,11 @@ class MnistDataSupplier(train: Boolean) {
 fun main() {
     val s = MnistDataSupplier(true)
 
-    for (i in 0 until 10) {
+    for (i in 30 until 50) {
         println("========")
         val (x, y) = s.get(i)
-        ImageUtil.printGrayScaleImage((x as JvmTensor).data.reshape(28, 28).toMatrix())
-        println((y as JvmTensor).data.argmax())
+        ImageUtil.printGrayScaleImage(x.reshape(28, 28).toMatrix())
+        println(y.argmax())
         println("========")
     }
 }
