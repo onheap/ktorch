@@ -12,7 +12,7 @@ import org.openjdk.jmh.annotations.*
 @State(Scope.Benchmark)
 @Fork(value = 1, jvmArgsPrepend = ["--add-modules=jdk.incubator.vector", "-XX:-TieredCompilation"])
 open class NDArrayImplementationBenchmark {
-    @Param("1024") private var size = 0
+    @Param("64", "1024", "4096") private var size = 0
 
     private lateinit var A: FloatArray
     private lateinit var B: FloatArray
@@ -30,14 +30,30 @@ open class NDArrayImplementationBenchmark {
     }
 
     @Benchmark
-    fun addOld() {
+    fun add() {
         NA.add(NB)
     }
 
     @Benchmark
-    fun addNew() {
-        NA.addNew(NB)
+    fun addVector() {
+        NA.addVector(NB)
     }
+
+    @Benchmark
+    fun addEnum() {
+        NA.addEnum(NB)
+    }
+
+    @Benchmark
+    fun addIterative() {
+        NA.addIterative(NB)
+    }
+
+    @Benchmark
+    fun addBroadcast() {
+        NA.addBroadcast(NB)
+    }
+
     //
     //    @Benchmark
     //    fun subOld() {

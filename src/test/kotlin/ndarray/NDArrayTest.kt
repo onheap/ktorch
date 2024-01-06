@@ -301,7 +301,6 @@ class NDArrayTest {
 
             // CC
             assertNDArrayEquals(A.add(B), C.add(D))
-            assertNDArrayEquals(A.add(B), C.addNew(D))
             assertNDArrayEquals(A.sub(B), C.sub(D))
             assertNDArrayEquals(A.mul(B), C.mul(D))
             assertNDArrayEquals(A.div(B), C.div(D))
@@ -310,9 +309,15 @@ class NDArrayTest {
             assertNDArrayEquals(A.log(), C.log())
             assertNDArrayEquals(A.exp(), C.exp())
 
+            assertNDArrayEquals(A.add(fb[0]), C.add(fb[0]))
+            assertNDArrayEquals(A.sub(fb[0]), C.sub(fb[0]))
+            assertNDArrayEquals(A.mul(fb[0]), C.mul(fb[0]))
+            assertNDArrayEquals(A.div(fb[0]), C.div(fb[0]))
+            assertNDArrayEquals(A.maximum(fb[0]), C.maximum(fb[0]))
+            assertNDArrayEquals(A.minimum(fb[0]), C.minimum(fb[0]))
+
             // FF
             assertNDArrayEquals(AT.add(BT), CT.add(DT))
-            assertNDArrayEquals(AT.add(BT), CT.addNew(DT))
             assertNDArrayEquals(AT.sub(BT), CT.sub(DT))
             assertNDArrayEquals(AT.mul(BT), CT.mul(DT))
             assertNDArrayEquals(AT.div(BT), CT.div(DT))
@@ -320,6 +325,13 @@ class NDArrayTest {
             assertNDArrayEquals(AT.minimum(BT), CT.minimum(DT))
             assertNDArrayEquals(AT.log(), CT.log())
             assertNDArrayEquals(AT.exp(), CT.exp())
+
+            assertNDArrayEquals(AT.add(fb[0]), CT.add(fb[0]))
+            assertNDArrayEquals(AT.sub(fb[0]), CT.sub(fb[0]))
+            assertNDArrayEquals(AT.mul(fb[0]), CT.mul(fb[0]))
+            assertNDArrayEquals(AT.div(fb[0]), CT.div(fb[0]))
+            assertNDArrayEquals(AT.maximum(fb[0]), CT.maximum(fb[0]))
+            assertNDArrayEquals(AT.minimum(fb[0]), CT.minimum(fb[0]))
 
             val a = manager.create(fa, n, m)
             val b = manager.create(fb, n, m)
@@ -333,7 +345,6 @@ class NDArrayTest {
 
             // CF
             assertNDArrayEquals(A.add(bt), C.add(dt))
-            assertNDArrayEquals(A.add(bt), C.addNew(dt))
             assertNDArrayEquals(A.sub(bt), C.sub(dt))
             assertNDArrayEquals(A.mul(bt), C.mul(dt))
             assertNDArrayEquals(A.div(bt), C.div(dt))
@@ -342,7 +353,6 @@ class NDArrayTest {
 
             // FC
             assertNDArrayEquals(at.add(B), ct.add(D))
-            assertNDArrayEquals(at.add(B), ct.addNew(D))
             assertNDArrayEquals(at.sub(B), ct.sub(D))
             assertNDArrayEquals(at.mul(B), ct.mul(D))
             assertNDArrayEquals(at.div(B), ct.div(D))

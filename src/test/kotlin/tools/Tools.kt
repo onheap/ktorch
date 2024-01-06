@@ -83,9 +83,9 @@ fun randomDivisibleBy(v: Int): Int {
 }
 
 fun randomFloat(excludeZero: Boolean = false): Float {
-    var r = Random.nextFloat() - 0.5F
+    var r = Random.nextFloat() * 2 - 1F
     while (excludeZero && r == 0F) {
-        r = Random.nextFloat() - 0.5F
+        r = Random.nextFloat() * 2 - 1F
     }
     return r
 }

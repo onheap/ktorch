@@ -81,6 +81,8 @@ class MnistDataSupplier(train: Boolean) {
         return X[idx] to Y[idx]
     }
 
+    fun getArray(idx: Int) = get(idx).let { (x, y) -> x.toArray() to y.toArray() }
+
     fun size() = X.size
 }
 

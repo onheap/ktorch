@@ -1,5 +1,6 @@
 package core.tensor
 
+import kotlin.collections.*
 import ndarray.NDArrays
 import ndarray.Util
 
@@ -10,6 +11,10 @@ object Tensors {
         requiresGrad: Boolean = false
     ): Tensor {
         return JvmTensor(NDArrays.of(shape, data), requiresGrad = requiresGrad)
+    }
+
+    fun create(data: Array<FloatArray>, requiresGrad: Boolean = false): Tensor {
+        return JvmTensor(data = NDArrays.of(data), requiresGrad = requiresGrad)
     }
 
     fun onesLike(tensor: Tensor): Tensor {

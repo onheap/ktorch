@@ -391,10 +391,10 @@ public class NDArray implements Iterable<Float> {
 
         int i = 0;
         int len = A.length;
-        FloatVector max = FloatVector.broadcast(SPECIES, v);
+        FloatVector min = FloatVector.broadcast(SPECIES, v);
         for (; i < SPECIES.loopBound(len); i += SPECIES_LEN) {
             var va = FloatVector.fromArray(SPECIES, A, i);
-            va.max(max).intoArray(B, i);
+            va.min(min).intoArray(B, i);
         }
 
         for (; i < len; i++) {
@@ -599,6 +599,10 @@ public class NDArray implements Iterable<Float> {
         return res;
     }
 
+    public NDArray add(float other) {
+        return this.add(NDArrays.ofScalar(other));
+    }
+
     public NDArray add(NDArray other) {
         if (elementwiseOperable(this, other)) {
             NDArray res = NDArrays.zerosLike(this);
@@ -622,6 +626,10 @@ public class NDArray implements Iterable<Float> {
         }
 
         return perform(this, other, (a, b) -> a + b);
+    }
+
+    public NDArray sub(float other) {
+        return this.sub(NDArrays.ofScalar(other));
     }
 
     public NDArray sub(NDArray other) {
@@ -649,6 +657,10 @@ public class NDArray implements Iterable<Float> {
         return perform(this, other, (a, b) -> a - b);
     }
 
+    public NDArray mul(float other) {
+        return this.mul(NDArrays.ofScalar(other));
+    }
+
     public NDArray mul(NDArray other) {
         if (elementwiseOperable(this, other)) {
             NDArray res = NDArrays.zerosLike(this);
@@ -672,6 +684,10 @@ public class NDArray implements Iterable<Float> {
         }
 
         return perform(this, other, (a, b) -> a * b);
+    }
+
+    public NDArray div(float other) {
+        return this.div(NDArrays.ofScalar(other));
     }
 
     public NDArray div(NDArray other) {
@@ -746,27 +762,6 @@ public class NDArray implements Iterable<Float> {
 
         for (; i < len; i++) {
             B[i] = op.processSingle(A[i]);
-        }
-
-        return res;
-    }
-
-    private NDArray performElementwise(NDArray other, ElementWiseBinaryOperator op) {
-        NDArray res = NDArrays.zerosLike(this);
-
-        float[] A = this.data;
-        float[] B = other.data;
-        float[] C = res.data;
-
-        int i = 0;
-        for (; i < SPECIES.loopBound(data.length); i += SPECIES_LEN) {
-            var va = FloatVector.fromArray(SPECIES, A, i);
-            var vb = FloatVector.fromArray(SPECIES, B, i);
-            va.lanewise(op.vectorOperator, vb).intoArray(C, i);
-        }
-
-        for (; i < data.length; i++) {
-            C[i] = op.singleOperator.applyAsFloat(A[i], B[i]);
         }
 
         return res;
@@ -910,14 +905,37 @@ public class NDArray implements Iterable<Float> {
                 .formatted(joinToStr.apply(shape), joinToStr.apply(strides), getContiguous());
     }
 
-    // test code
-    public NDArray addNew(NDArray other) {
-        final ElementWiseBinaryOperator op = ElementWiseBinaryOperator.ADD;
+    // performance test code
+    public NDArray addIterative(NDArray other) {
+        return NDArrays.performIteratively(this, other, (a, b) -> a + b);
+    }
 
-        if (elementwiseOperable(this, other)) {
-            return performElementwise(other, op);
+    public NDArray addBroadcast(NDArray other) {
+        return NDArrays.performBroadcastly(this, other, (a, b) -> a + b);
+    }
+
+    public NDArray addVector(NDArray other) {
+        NDArray res = NDArrays.zerosLike(this);
+
+        float[] A = this.data;
+        float[] B = other.data;
+        float[] C = res.data;
+
+        int i = 0;
+        for (; i < SPECIES.loopBound(data.length); i += SPECIES_LEN) {
+            var va = FloatVector.fromArray(SPECIES, this.data, i);
+            var vb = FloatVector.fromArray(SPECIES, other.data, i);
+            va.add(vb).intoArray(C, i);
         }
 
-        return perform(this, other, op.singleOperator);
+        for (; i < data.length; i++) {
+            C[i] = A[i] + B[i];
+        }
+
+        return res;
+    }
+
+    public NDArray addEnum(NDArray other) {
+        return ElementWiseBinaryOperator.ADD.performElementwise(this, other);
     }
 }

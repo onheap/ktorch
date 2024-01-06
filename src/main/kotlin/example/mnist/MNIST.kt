@@ -4,52 +4,47 @@ import core.tensor.JvmTensor
 import core.tensor.Tensor
 import core.tensor.Tensors
 import kotlin.math.absoluteValue
-import kotlin.math.sqrt
 import kotlin.random.Random
 import tools.ImageUtil
+import tools.RandomUtil
 
 // https://github.com/tinygrad/tinygrad/blob/91a352a8e2697828a4b1eafa2bdc1a9a3b7deffa/test/mnist.py
 
-var Rand = Random(123)
+private var Rand = Random(123)
 
 infix fun Float.closeTo(other: Float): Boolean {
     return (this - other).absoluteValue < 0.01F
 }
 
-fun layerInit(inputSize: Int, outputSize: Int): Tensor {
-    return Tensors.create(
-        data =
-            FloatArray(inputSize * outputSize) {
-                (Rand.nextFloat() * 2 - 1) / sqrt(inputSize.toFloat() * outputSize)
-            },
-        shape = intArrayOf(inputSize, outputSize),
-        requiresGrad = true)
-}
-
 data class SGD(val tensors: List<Tensor>, val lr: Float) {
-
-    private val lrTensor = Tensors.createScalar(lr) as JvmTensor
-
     fun step() {
         for (t in tensors) {
             t as JvmTensor
             val grad = t.grad!! as JvmTensor
-            t.data = t.data.sub(grad.data.mul(lrTensor.data))
+            t.data = t.data.sub(grad.data.mul(lr))
         }
     }
 }
 
-class MnistNet {
-    val l1 = layerInit(784, 128)
-    val l2 = layerInit(128, 10)
+class MnistNet(rand: Random = Rand) {
+    val l1 =
+        Tensors.create(
+            data = RandomUtil.xavierInitArray(784 * 128, rand),
+            shape = intArrayOf(784, 128),
+            requiresGrad = true)
+    val l2 =
+        Tensors.create(
+            data = RandomUtil.xavierInitArray(128 * 10, rand),
+            shape = intArrayOf(128, 10),
+            requiresGrad = true)
 
     fun forward(x: Tensor): Tensor {
         return x.matmul(l1).relu().matmul(l2).logSoftmax()
     }
 }
 
-object MNIST {
-    private val model = MnistNet()
+class MNIST(private val rand: Random = Rand) {
+    private val model = MnistNet(rand)
     private val optim = SGD(listOf(model.l1, model.l2), lr = 0.01F)
 
     private val train = MnistDataSupplier(true)
@@ -57,7 +52,7 @@ object MNIST {
 
     fun train(BS: Int = 128) {
         for (i in 0 until 2000) {
-            val sampIdxes = IntArray(BS) { Rand.nextInt(0, train.size()) }
+            val sampIdxes = RandomUtil.randInt(BS, 0 until train.size(), rand)
 
             val (xList, yList) = sampIdxes.map(train::get).unzip()
 
@@ -111,6 +106,7 @@ object MNIST {
 }
 
 fun main() {
-    MNIST.train()
-    MNIST.eval()
+    val mnist = MNIST()
+    mnist.train()
+    mnist.eval()
 }

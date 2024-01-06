@@ -9,8 +9,9 @@ fun main(args: Array<String>) {
 
     when (val task = args[0].lowercase()) {
         "mnist" -> {
-            MNIST.train()
-            MNIST.eval()
+            val m = MNIST()
+            m.train()
+            m.eval()
         }
         else -> {
             System.err.println("unknown task $task")

@@ -42,6 +42,27 @@ public class NDArrays {
         return NDArrays.of(arrOf(data.length), data);
     }
 
+    public static NDArray of(float[][] matrix) {
+        if (matrix.length == 0 || matrix[0].length == 0) {
+            throw new IllegalArgumentException("not a valid matrix");
+        }
+
+        int m = matrix.length;
+        int n = matrix[0].length;
+
+        float[] data = new float[m * n];
+
+        for (int i = 0; i < m; i++) {
+            if (matrix[i].length != n) {
+                throw new IllegalArgumentException("not a valid matrix");
+            }
+
+            System.arraycopy(matrix[i], 0, data, i * n, n);
+        }
+
+        return NDArrays.of(arrOf(m, n), data);
+    }
+
     public static NDArray ofScalar(float data) {
         return NDArrays.of(new int[0], arrOf(data));
     }
@@ -103,10 +124,11 @@ public class NDArrays {
         if (shapesEqual(a, b)) {
             return performIteratively(a, b, op);
         }
+
         return performBroadcastly(a, b, op);
     }
 
-    private static NDArray performIteratively(NDArray a, NDArray b, FloatBinaryOperator op) {
+    protected static NDArray performIteratively(NDArray a, NDArray b, FloatBinaryOperator op) {
         assertShapesEqual(a, b);
         NDArray res = NDArrays.of(a.shape);
         Iterator<Float> A = a.iterator();
@@ -121,7 +143,21 @@ public class NDArrays {
         return res;
     }
 
-    private static NDArray performBroadcastly(NDArray a, NDArray b, FloatBinaryOperator op) {
+    protected static NDArray performBroadcastly(NDArray a, NDArray b, FloatBinaryOperator op) {
+        boolean scalarA = a.isScalar();
+        boolean scalarB = b.isScalar();
+        if (scalarA || scalarB) {
+            if (scalarA && scalarB) {
+                return NDArrays.ofScalar(op.applyAsFloat(a.asScalar(), b.asScalar()));
+            }
+
+            if (scalarA) {
+                return performScalarWith(a, b, op);
+            }
+
+            return performWithScalar(a, b, op);
+        }
+
         NDArray res = NDArrays.of(broadcastShapes(a.shape, b.shape));
         int[] shapeA = a.shape;
         int[] shapeB = b.shape;
@@ -145,6 +181,34 @@ public class NDArrays {
             res.set(indicesC, op.applyAsFloat(a.get(indicesA), b.get(indicesB)));
         } while (ShapeUtil.increaseIndices(indicesC, shapeC));
 
+        return res;
+    }
+
+    protected static NDArray performScalarWith(NDArray a, NDArray b, FloatBinaryOperator op) {
+        float va = a.asScalar();
+        NDArray res = NDArrays.of(a.shape);
+
+        Iterator<Float> B = b.iterator();
+        float[] output = res.data;
+
+        for (int i = 0; i < output.length; i++) {
+            float vb = B.next();
+            output[i] = op.applyAsFloat(va, vb);
+        }
+        return res;
+    }
+
+    protected static NDArray performWithScalar(NDArray a, NDArray b, FloatBinaryOperator op) {
+        float vb = b.asScalar();
+        NDArray res = NDArrays.of(a.shape);
+
+        Iterator<Float> A = a.iterator();
+        float[] output = res.data;
+
+        for (int i = 0; i < output.length; i++) {
+            float va = A.next();
+            output[i] = op.applyAsFloat(va, vb);
+        }
         return res;
     }
 }

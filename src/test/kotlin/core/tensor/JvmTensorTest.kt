@@ -226,42 +226,75 @@ class JvmTensorTest {
 
     @Test
     fun testMatmulCorrectness() {
-        val fa = floatArrayOf(1F, 2F, 3F, 4F)
-        val fb = floatArrayOf(5F, 6F, 7F, 8F)
 
-        val sa = intArrayOf(2, 2)
-        val sb = intArrayOf(2, 2)
+        repeat(100) {
+            val m = Random.nextInt(1, 1024)
+            val n = Random.nextInt(1, 1024)
+            val p = Random.nextInt(1, 1024)
 
-        val ta = Tensors.create(data = fa, shape = sa, requiresGrad = true)
-        val tb = Tensors.create(data = fb, shape = sb, requiresGrad = true)
+            printMessage("A: $m X $n, B: $n X $p")
 
-        val da = manager.create(data = fa, shape = sa, requiresGrad = true)
-        val db = manager.create(data = fb, shape = sb, requiresGrad = true)
+            val fa = FloatArray(m * n) { randomFloat() }
+            val fb = FloatArray(n * p) { randomFloat() }
 
-        val fc = floatArrayOf(1F, 2F, 3F, 4F)
-        val sc = intArrayOf(2, 2)
+            val sa = intArrayOf(m, n)
+            val sb = intArrayOf(n, p)
 
-        assertOpResEqual(
-            BOp(da, db) { x, W ->
-                val m = manager.create(fc, shape = sc, requiresGrad = true)
+            val ta = Tensors.create(data = fa, shape = sa, requiresGrad = true)
+            val tb = Tensors.create(data = fb, shape = sb, requiresGrad = true)
 
-                val out = x.dot(W)
-                val outr = out.relu()
-                val outl = outr.logSoftmax()
-                val outm = outl.mul(m)
-                val outa = outm.add(m)
-                outa.sum()
-            },
-            BOp(ta, tb) { x, W ->
-                val m = Tensors.create(fc, shape = sc, requiresGrad = true)
+            val da = manager.create(data = fa, shape = sa, requiresGrad = true)
+            val db = manager.create(data = fb, shape = sb, requiresGrad = true)
 
-                val out = x.matmul(W)
-                val outr = out.relu()
-                val outl = outr.logSoftmax()
-                val outm = outl.mul(m)
-                val outa = outm.add(m)
-                outa.sum()
-            })
+            assertOpResEqual(BOp(da, db, NDArray::matMul), BOp(ta, tb, Tensor::matmul))
+
+            // predict input.matmul(l1).relu().matmul(l2).logSoftmax()
+            FloatArray(m) { randomFloat() }
+                .let { fc ->
+                    assertOpResEqual(
+                        D =
+                            BOp(da, db) { l1, l2 ->
+                                val input = manager.create(fc, shape = intArrayOf(1, m))
+                                input.matMul(l1).relu().matMul(l2).logSoftmax()
+                            },
+                        T =
+                            BOp(ta, tb) { l1, l2 ->
+                                val input = Tensors.create(fc, shape = intArrayOf(1, m))
+                                input.matmul(l1).relu().matmul(l2).logSoftmax()
+                            },
+                        tol = 1F,
+                    )
+                }
+
+            FloatArray(m * p) { randomFloat() }
+                .let { fc ->
+                    assertOpResEqual(
+                        D =
+                            BOp(da, db) { x, W ->
+                                val m = manager.create(fc, shape = intArrayOf(m, p))
+
+                                val out = x.dot(W)
+                                val outr = out.relu()
+                                val outl = outr.logSoftmax()
+                                val outm = outl.mul(m)
+                                val outa = outm.add(m)
+                                outa.sum()
+                            },
+                        T =
+                            BOp(ta, tb) { x, W ->
+                                val m = Tensors.create(fc, shape = intArrayOf(m, p))
+
+                                val out = x.matmul(W)
+                                val outr = out.relu()
+                                val outl = outr.logSoftmax()
+                                val outm = outl.mul(m)
+                                val outa = outm.add(m)
+                                outa.sum()
+                            },
+                        tol = 1F,
+                    )
+                }
+        }
     }
 
     private fun assertOpResEqual(D: UOp<NDArray>, T: UOp<Tensor>, tol: Float = 0.001F) {
@@ -321,6 +354,7 @@ class JvmTensorTest {
             printObjects(true, "TTT", T.a.grad, T.b.grad)
 
             printObjects()
+
             throw t
         }
     }
