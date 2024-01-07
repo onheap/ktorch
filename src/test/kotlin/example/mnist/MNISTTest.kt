@@ -2,6 +2,7 @@ package example.mnist
 
 import ai.djl.ndarray.NDArray
 import ai.djl.ndarray.NDManager
+import ai.djl.ndarray.types.DataType
 import ai.djl.ndarray.types.Shape
 import ai.djl.nn.Activation
 import core.tensor.JvmTensor
@@ -42,14 +43,14 @@ class MNISTTest {
         return x.matmul(l1t).relu().matmul(l2t).logSoftmax()
     }
 
-    private fun sgdNDArray() {
-        for (t in listOf(l1n, l2n)) {
-            t.subi(t.gradient.mul(lr))
+    private fun sgd(vararg ndarrays: NDArray) {
+        for (n in ndarrays) {
+            n.gradient.mul(lr).use { diff -> n.subi(diff) }
         }
     }
 
-    private fun sgdTensor() {
-        for (t in listOf(l1t, l2t)) {
+    private fun sgd(vararg tensors: Tensor) {
+        for (t in tensors) {
             t as JvmTensor
             val grad = t.grad!! as JvmTensor
             t.data = t.data.sub(grad.data.mul(lr))
@@ -78,6 +79,44 @@ class MNISTTest {
 
     @Test
     fun test() {
+        ProgressBar.loopFor(60000) {
+            //        for (i in 0 until 2000) {
+            val sampIdxes = RandomUtil.randInt(BS, 0 until train.size(), rand)
+
+            manager.newSubManager().use { subManager ->
+                val (xArray, yArray) =
+                    sampIdxes.map(train::getArray).unzip().let { (x, y) ->
+                        x.toTypedArray() to y.toTypedArray()
+                    }
+
+                val X = subManager.create(xArray)
+                val Y = subManager.create(yArray)
+
+                val (outs, loss) =
+                    subManager.engine.newGradientCollector().use { gc ->
+                        val outs = forward(X)
+
+                        // NLL loss
+                        val y = Y.mul(-1F)
+                        val loss = outs.mul(y).mean()
+
+                        gc.backward(loss)
+                        return@use outs to loss
+                    }
+
+                sgd(l1n, l2n)
+
+                val accuracy =
+                    outs.argMax(-1).eq(Y.argMax(-1)).toType(DataType.FLOAT32, true).mean()
+
+                ("loss ${loss.getFloat()}, accuracy ${accuracy.getFloat()}")
+            }
+        }
+    }
+
+    @Test
+    fun testMnistCorrectness() {
+        // verify mnist step by step
         for (i in 0 until 100) {
             val sampIdxes = RandomUtil.randInt(BS, 0 until train.size(), rand)
 
@@ -86,15 +125,17 @@ class MNISTTest {
                     x.toTypedArray() to y.toTypedArray()
                 }
 
-            val XN = manager.create(xArray)
-            val YN = manager.create(yArray)
+            val subManager = manager.newSubManager()
+
+            val XN = subManager.create(xArray)
+            val YN = subManager.create(yArray)
 
             val XT = Tensors.create(xArray)
             val YT = Tensors.create(yArray)
 
             val (outsn, lossn) =
                 (XN to YN).let { (X, Y) ->
-                    manager.engine.newGradientCollector().use { gc ->
+                    subManager.engine.newGradientCollector().use { gc ->
                         val outs = forward(X)
 
                         // NLL loss
@@ -135,8 +176,10 @@ class MNISTTest {
             println(
                 "iteration $i: accuracy ${accuracy.asScalar()}\n loss ndarray: ${lossn.getFloat()}, tensor: ${losst.asScalar()}")
 
-            sgdNDArray()
-            sgdTensor()
+            sgd(l1n, l2n)
+            sgd(l1t, l2t)
+
+            subManager.close()
         }
 
         val (xArray, yArray) =
@@ -161,4 +204,11 @@ class MNISTTest {
 
         println("accuracy on test data set ${accuracy.asScalar()}")
     }
+}
+
+fun main(args: Array<String>) {
+    val test = MNISTTest()
+    test.setUp()
+    test.test()
+    test.tearDown()
 }

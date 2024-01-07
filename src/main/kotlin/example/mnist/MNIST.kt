@@ -6,6 +6,7 @@ import core.tensor.Tensors
 import kotlin.math.absoluteValue
 import kotlin.random.Random
 import tools.ImageUtil
+import tools.ProgressBar
 import tools.RandomUtil
 
 // https://github.com/tinygrad/tinygrad/blob/91a352a8e2697828a4b1eafa2bdc1a9a3b7deffa/test/mnist.py
@@ -51,7 +52,7 @@ class MNIST(private val rand: Random = Rand) {
     private val test = MnistDataSupplier(false)
 
     fun train(BS: Int = 128) {
-        for (i in 0 until 2000) {
+        ProgressBar.loopFor(2500, "Training") {
             val sampIdxes = RandomUtil.randInt(BS, 0 until train.size(), rand)
 
             val (xList, yList) = sampIdxes.map(train::get).unzip()
@@ -72,7 +73,7 @@ class MNIST(private val rand: Random = Rand) {
                 Tensors.perform(outs.argmax(1), Y.argmax(1)) { a, b -> if (a closeTo b) 1F else 0F }
                     .mean()
 
-            println("iteration $i: loss ${loss.asScalar()}, accuracy ${accuracy.asScalar()}")
+            ("loss ${loss.asScalar()}, accuracy ${accuracy.asScalar()}")
         }
     }
 

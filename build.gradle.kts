@@ -22,6 +22,8 @@ repositories { mavenCentral() }
 
 dependencies {
     testImplementation(kotlin("test"))
+    implementation("org.apache.logging.log4j:log4j-slf4j-impl:2.22.1")
+
     implementation("org.jetbrains.kotlinx:multik-core:0.2.2")
     implementation("org.jetbrains.kotlinx:multik-default:0.2.2")
     implementation("org.ejml:ejml-all:0.43.1")
