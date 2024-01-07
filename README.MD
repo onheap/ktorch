@@ -38,7 +38,7 @@ Implement Numpy _Broadcasting_ and _Dot Product_ in pure Java/Kotlin, and use SI
 * https://github.com/openjdk/jdk/pull/15338
 * https://www.baeldung.com/jvm-tiered-compilation
 
-###### Performance testing (JMH)
+##### Performance testing (JMH)
 * https://github.com/melix/jmh-gradle-plugin
 
 ### Implement Simple NN
@@ -52,11 +52,46 @@ the original plan is to implement backward using closure same as the implementat
 * https://magdamiu.medium.com/high-performance-with-idiomatic-kotlin-d52e099d0df0
 
 #### Implement MNIST
-https://github.com/tinygrad/tinygrad/blob/91a352a8e2697828a4b1eafa2bdc1a9a3b7deffa/test/mnist.py
+```shell
+./gradlew run --args=mnist
+```
 
+https://github.com/tinygrad/tinygrad/blob/91a352a8e2697828a4b1eafa2bdc1a9a3b7deffa/test/mnist.py
 
 * Predict: input.dot(l1).relu().dot(l2).logSoftmax()
 * Loss: NLL loss or [CrossEntropyLoss](https://stackoverflow.com/questions/65192475/pytorch-logsoftmax-vs-softmax-for-crossentropyloss)
+
+##### Tool
+* Print image in terminal
+  * https://stackoverflow.com/questions/5762491/how-to-print-color-in-console-using-system-out-println
+  * https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
+  * https://github.com/Nellousan/px2ansi/blob/main/px2ansi.py
+  ```shell
+  ████████████████████████████
+  ████████████████████████████
+  █████████████▀▀▀▀███████████
+  █████████████▀  ▄▄ ▀████████
+  ████████▀  ▄▄▄▄  █  ████████
+  ████████  ██████▀ ▄█████████
+  ████████▄▄ ▀▀█▀ ▄███████████
+  ████████████   █████████████
+  ███████████  █▄ ▀███████████
+  ██████████  ████▄ ██████████
+  ██████████ ██████ ██████████
+  ██████████ ▀██▀▀  ██████████
+  ███████████▄▄▄▄▄████████████
+  ████████████████████████████
+  ```
+
+* Progress bar:
+  * https://medium.com/javarevisited/how-to-display-progressbar-on-the-standard-console-using-java-18f01d52b30e
+  * https://github.com/ctongfei/progressbar/blob/main/src/main/java/me/tongfei/progressbar/ProgressBarStyle.java
+
+  ```shell
+  Training 2300/2500  92%: ████████████████████████████████████████████████████████████████████████████████████████████░░░░░░░░ 4.933522s loss 0.03679451, accuracy 0.91406255
+  ```
+
+
 
 # TODO List
 * Get sub NDArray by indices
