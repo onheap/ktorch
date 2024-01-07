@@ -6,8 +6,9 @@ import kotlin.random.Random
 import kotlin.time.toKotlinDuration
 
 object ProgressBar {
-    private const val INCOMPLETE = "░"
+    private const val INCOMPLETE = " "
     private const val COMPLETE = "█"
+    private const val BLOCKS = "▎▌▊"
     private const val RESET = "\r"
 
     fun loopFor(total: Int, taskName: String = "", task: (Int) -> Any?) {
@@ -45,8 +46,20 @@ object ProgressBar {
         val percentStr = String.format("%3d", percent)
         val durationStr = if (duration.isZero) "" else duration.toKotlinDuration().toString()
 
-        print(
-            "$RESET$taskName $countStr $percentStr%: ${COMPLETE.repeat(percent)}${INCOMPLETE.repeat(100-percent)} $durationStr $extMsg")
+        when (percent % 4) {
+            0 ->
+                print(
+                    "$RESET$taskName $countStr $percentStr%: │${COMPLETE.repeat(percent / 4)}${INCOMPLETE.repeat(25 - percent / 4)}│ $durationStr $extMsg")
+            1 ->
+                print(
+                    "$RESET$taskName $countStr $percentStr%: │${COMPLETE.repeat(percent / 4)}${BLOCKS[0]}${INCOMPLETE.repeat(24 - percent / 4)}│ $durationStr $extMsg")
+            2 ->
+                print(
+                    "$RESET$taskName $countStr $percentStr%: │${COMPLETE.repeat(percent / 4)}${BLOCKS[1]}${INCOMPLETE.repeat(24 - percent / 4)}│ $durationStr $extMsg")
+            3 ->
+                print(
+                    "$RESET$taskName $countStr $percentStr%: │${COMPLETE.repeat(percent / 4)}${BLOCKS[2]}${INCOMPLETE.repeat(24 - percent / 4)}│ $durationStr $extMsg")
+        }
     }
 }
 
