@@ -95,10 +95,13 @@ https://github.com/tinygrad/tinygrad/blob/91a352a8e2697828a4b1eafa2bdc1a9a3b7def
 
 # TODO List
 * Get sub NDArray by indices
+* Make matmul applicable for 1-d arrays, ref [implementation in mlx](https://github.com/ml-explore/mlx/blob/026ef9aae4ba33743e34bff554529a2b6ff7ab54/mlx/ops.cpp#L1934-L1941)
 * Benchmark with flame graph & memory usage
 
 
-# Reference
+# Reference 
+
+## Articles
 * https://github.com/pytorch/pytorch
 * https://pytorch.org/docs/stable/tensors.html
 * https://github.com/karpathy/nn-zero-to-hero
@@ -107,3 +110,13 @@ https://github.com/tinygrad/tinygrad/blob/91a352a8e2697828a4b1eafa2bdc1a9a3b7def
 * https://blog.paperspace.com/pytorch-101-advanced/
 * https://blog.christianperone.com/2019/02/pydata-montreal-slides-for-the-talk-pytorch-under-the-hood/
 * https://blog.christianperone.com/2018/03/pytorch-internal-architecture-tour/
+
+## Projects
+* https://github.com/tinygrad/tinygrad/ ([early stage commit](https://github.com/tinygrad/tinygrad/tree/91a352a8e2697828a4b1eafa2bdc1a9a3b7deffa))
+* https://github.com/karpathy/micrograd
+* https://github.com/mikex86/scicore
+* https://github.com/deepjavalibrary/djl
+* https://github.com/lessthanoptimal/ejml
+* https://github.com/ml-explore/mlx
+* https://github.com/padreati/rapaio
+* https://github.com/Kotlin/multik
