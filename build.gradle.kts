@@ -1,13 +1,13 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 plugins {
     java
-    kotlin("jvm") version "1.8.10"
+    kotlin("jvm") version "1.9.23"
     application
     id("me.champeau.jmh") version "0.7.2"
 
@@ -42,7 +42,7 @@ tasks.test {
 }
 
 tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "17"
+    kotlinOptions.jvmTarget = "21"
     kotlinOptions.freeCompilerArgs = listOf("-Xadd-modules=jdk.incubator.vector")
 }
 
@@ -60,7 +60,7 @@ jmh {
     //    timeOnIteration.set("10s")  // Default is '10 s'
 
     includes.addAll("benchmarks.NDArrayImplementationBenchmark")
-    //    includes.addAll("benchmarks.BenchmarkLibraries")
+//        includes.addAll("benchmarks.JavaMatrixMultiplicationBenchmark")
 }
 
 tasks.jmhRunBytecodeGenerator { jvmArgs.addAll("--add-modules=jdk.incubator.vector") }

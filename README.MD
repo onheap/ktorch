@@ -40,8 +40,10 @@ Implement Numpy _Broadcasting_ and _Dot Product_ in pure Java/Kotlin, and use SI
 * https://www.baeldung.com/jvm-tiered-compilation
 
 ##### Performance testing (JMH)
+Principle: make matrix multiplication as fast as possible, and other operations more elegant.
 * https://github.com/melix/jmh-gradle-plugin
 * https://github.com/openjdk/jdk/pull/15338
+
 
 ### Implement Simple NN
 

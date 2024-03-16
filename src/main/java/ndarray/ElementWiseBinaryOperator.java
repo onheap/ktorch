@@ -7,19 +7,23 @@ import jdk.incubator.vector.VectorOperators;
 import jdk.incubator.vector.VectorSpecies;
 
 public enum ElementWiseBinaryOperator {
-    ADD(VectorOperators.ADD, (a, b) -> a + b);
+    ADD(VectorOperators.ADD) {
+        @Override
+        public float processSingle(float a, float b) {
+            return a + b;
+        }
+    };
 
     private static final VectorSpecies<Float> SPECIES = FloatVector.SPECIES_PREFERRED;
     private static final int SPECIES_LEN = SPECIES.length();
 
     public final VectorOperators.Binary vectorOperator;
 
-    public final FloatBinaryOperator singleOperator;
+    public abstract float processSingle(float a, float b);
 
     ElementWiseBinaryOperator(
-            VectorOperators.Binary vectorOperator, FloatBinaryOperator singleOperator) {
+            VectorOperators.Binary vectorOperator) {
         this.vectorOperator = vectorOperator;
-        this.singleOperator = singleOperator;
     }
 
     public NDArray performElementwise(NDArray a, NDArray b) {
@@ -37,7 +41,7 @@ public enum ElementWiseBinaryOperator {
         }
 
         for (; i < C.length; i++) {
-            C[i] = singleOperator.applyAsFloat(A[i], B[i]);
+            C[i] = processSingle(A[i], B[i]);
         }
 
         return res;

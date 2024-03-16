@@ -34,21 +34,11 @@ import jdk.incubator.vector.*;
 import org.openjdk.jmh.annotations.*;
 
 /**
- * Copied from https://github.com/openjdk/jdk/pull/15338
- * Result:
- * Benchmark                                            (size)  Mode  Cnt     Score    Error  Units
- * MatrixMultiplicationBenchmark.mmulBaseline             1024  avgt    5  1010.765 ± 94.390  ms/op
- * MatrixMultiplicationBenchmark.mmulBlocked              1024  avgt    5   535.654 ±  5.466  ms/op
- * MatrixMultiplicationBenchmark.mmulBlockedVectorAuto    1024  avgt    5   173.509 ±  1.525  ms/op
- * MatrixMultiplicationBenchmark.mmulSimpleFMA            1024  avgt    5   294.350 ±  5.752  ms/op
- * MatrixMultiplicationBenchmark.mmulSimpleVector         1024  avgt    5    80.321 ±  1.493  ms/op
- *
- * Parallel Version Result
- * Benchmark                                            (size)  Mode  Cnt   Score   Error  Units
- * MatrixMultiplicationBenchmark.mmulBlocked              1024  avgt    5  90.966 ± 1.025  ms/op
- * MatrixMultiplicationBenchmark.mmulBlockedVectorAuto    1024  avgt    5  22.924 ± 0.738  ms/op
- * MatrixMultiplicationBenchmark.mmulNDImpl               1024  avgt    5  11.129 ± 0.254  ms/op
+ * Benchmark                                                (size)  Mode  Cnt   Score   Error  Units
+ * JavaMatrixMultiplicationBenchmark.mmulBlockedVectorAuto    1024  avgt    3  24.437 ± 1.214  ms/op
+ * JavaMatrixMultiplicationBenchmark.mmulNDImpl               1024  avgt    3  10.927 ± 0.964  ms/op
  */
+
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
