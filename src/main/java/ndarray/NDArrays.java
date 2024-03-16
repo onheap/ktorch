@@ -1,10 +1,11 @@
 package ndarray;
 
-import static ndarray.ShapeUtil.*;
-import static ndarray.Util.*;
+import static ndarray.utils.ShapeUtil.*;
+import static ndarray.utils.Util.*;
 
 import java.util.Arrays;
 import java.util.Iterator;
+import ndarray.utils.ShapeUtil;
 
 public class NDArrays {
 

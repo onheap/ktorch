@@ -12,10 +12,9 @@ import org.jetbrains.kotlinx.multik.api.ndarray
 import org.openjdk.jmh.annotations.*
 
 /**
- * Benchmark                          (size)  Mode  Cnt   Score   Error  Units
- * BenchmarkLibraries.DJL_Matmul        1024  avgt    3   2.162 ± 1.875  ms/op
- * BenchmarkLibraries.MK_Matmul         1024  avgt    3   7.194 ± 2.491  ms/op
- * BenchmarkLibraries.NDArray_Matmul    1024  avgt    3  11.051 ± 1.086  ms/op
+ * Benchmark (size) Mode Cnt Score Error Units BenchmarkLibraries.DJL_Matmul 1024 avgt 3 2.162 ±
+ * 1.875 ms/op BenchmarkLibraries.MK_Matmul 1024 avgt 3 7.194 ± 2.491 ms/op
+ * BenchmarkLibraries.NDArray_Matmul 1024 avgt 3 11.051 ± 1.086 ms/op
  */
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)

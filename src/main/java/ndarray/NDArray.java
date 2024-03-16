@@ -1,8 +1,7 @@
 package ndarray;
 
-import static ndarray.NDArrays.perform;
-import static ndarray.ShapeUtil.*;
-import static ndarray.Util.*;
+import static ndarray.utils.ShapeUtil.*;
+import static ndarray.utils.Util.*;
 
 import java.text.DecimalFormat;
 import java.util.Arrays;
@@ -13,10 +12,11 @@ import java.util.stream.Collectors;
 import jdk.incubator.vector.FloatVector;
 import jdk.incubator.vector.VectorOperators;
 import jdk.incubator.vector.VectorSpecies;
+import ndarray.operator.ElementWiseBinaryOperator;
+import ndarray.operator.ElementWiseReduceOperator;
+import ndarray.operator.ElementWiseUnaryOperator;
+import ndarray.utils.ShapeUtil;
 
-@SuppressWarnings("Duplicates")
-// There are lots of duplicate code that can be optimized on readability wise. However,
-// the Benchmark result of extracting common code fragments into functions is not good.
 public class NDArray implements Iterable<Float> {
     private static final VectorSpecies<Float> SPECIES = FloatVector.SPECIES_PREFERRED;
     private static final int SPECIES_LEN = SPECIES.length();
@@ -332,128 +332,30 @@ public class NDArray implements Iterable<Float> {
         throw new IllegalArgumentException("Unsupported ordering");
     }
 
-    public NDArray maximum(float v) {
-        assert elementwiseOperable(this);
-
-        NDArray res = NDArrays.zerosLike(this);
-
-        float[] A = this.data;
-        float[] B = res.data;
-
-        int i = 0;
-        int len = A.length;
-        FloatVector max = FloatVector.broadcast(SPECIES, v);
-        for (; i < SPECIES.loopBound(len); i += SPECIES_LEN) {
-            var va = FloatVector.fromArray(SPECIES, A, i);
-            va.max(max).intoArray(B, i);
-        }
-
-        for (; i < len; i++) {
-            B[i] = Math.max(A[i], v);
-        }
-
-        return res;
-    }
-
-    public NDArray maximum(NDArray other) {
-        if (elementwiseOperable(this, other)) {
-            NDArray res = NDArrays.zerosLike(this);
-
-            float[] A = this.data;
-            float[] B = other.data;
-            float[] C = res.data;
-
-            int i = 0;
-            int len = A.length;
-            for (; i < SPECIES.loopBound(len); i += SPECIES_LEN) {
-                var va = FloatVector.fromArray(SPECIES, A, i);
-                var vb = FloatVector.fromArray(SPECIES, B, i);
-                va.max(vb).intoArray(C, i);
-            }
-
-            for (; i < len; i++) {
-                C[i] = Math.max(A[i], B[i]);
-            }
-
-            return res;
-        }
-
-        return perform(this, other, Math::max);
-    }
-
-    public NDArray minimum(float v) {
-        assert elementwiseOperable(this);
-
-        NDArray res = NDArrays.zerosLike(this);
-
-        float[] A = this.data;
-        float[] B = res.data;
-
-        int i = 0;
-        int len = A.length;
-        FloatVector min = FloatVector.broadcast(SPECIES, v);
-        for (; i < SPECIES.loopBound(len); i += SPECIES_LEN) {
-            var va = FloatVector.fromArray(SPECIES, A, i);
-            va.min(min).intoArray(B, i);
-        }
-
-        for (; i < len; i++) {
-            B[i] = Math.min(A[i], v);
-        }
-
-        return res;
-    }
-
-    public NDArray minimum(NDArray other) {
-        if (elementwiseOperable(this, other)) {
-            NDArray res = NDArrays.zerosLike(this);
-
-            float[] A = this.data;
-            float[] B = other.data;
-            float[] C = res.data;
-
-            int i = 0;
-            int len = A.length;
-            for (; i < SPECIES.loopBound(len); i += SPECIES_LEN) {
-                var va = FloatVector.fromArray(SPECIES, A, i);
-                var vb = FloatVector.fromArray(SPECIES, B, i);
-                va.min(vb).intoArray(C, i);
-            }
-
-            for (; i < len; i++) {
-                C[i] = Math.min(A[i], B[i]);
-            }
-
-            return res;
-        }
-
-        return perform(this, other, Math::min);
-    }
-
     public NDArray sum() {
-        float total = elementWiseReduce(data, 0, data.length, ElementWiseReduceOperator.SUM);
+        float total = ElementWiseReduceOperator.SUM.elementWiseReduce(data, 0, data.length);
         return NDArrays.ofScalar(total);
     }
 
     public NDArray sum(int dim) {
-        return reduceAlongDimension(dim, false, ElementWiseReduceOperator.SUM);
+        return ElementWiseReduceOperator.SUM.reduceAlongDimension(this, dim, false);
     }
 
     public NDArray sum(int dim, boolean keepDims) {
-        return reduceAlongDimension(dim, keepDims, ElementWiseReduceOperator.SUM);
+        return ElementWiseReduceOperator.SUM.reduceAlongDimension(this, dim, keepDims);
     }
 
     public NDArray max() {
-        float max = elementWiseReduce(data, 0, data.length, ElementWiseReduceOperator.MAX);
+        float max = ElementWiseReduceOperator.MAX.elementWiseReduce(data, 0, data.length);
         return NDArrays.ofScalar(max);
     }
 
     public NDArray max(int dim) {
-        return reduceAlongDimension(dim, false, ElementWiseReduceOperator.MAX);
+        return ElementWiseReduceOperator.MAX.reduceAlongDimension(this, dim, false);
     }
 
     public NDArray max(int dim, boolean keepDims) {
-        return reduceAlongDimension(dim, keepDims, ElementWiseReduceOperator.MAX);
+        return ElementWiseReduceOperator.MAX.reduceAlongDimension(this, dim, keepDims);
     }
 
     public NDArray mean() {
@@ -514,18 +416,8 @@ public class NDArray implements Iterable<Float> {
         int[] dimMaxIndices = new int[len];
         int[] resIndices = new int[res.shape.length];
         for (int[] indices : this.indices()) {
-            if (0 < dim) {
-                System.arraycopy(indices, 0, resIndices, 0, dim);
-            }
 
-            if ((dim + 1) <= (len - 1)) {
-                System.arraycopy(
-                        indices,
-                        dim + 1,
-                        resIndices,
-                        keepDims ? dim + 1 : dim,
-                        (len - 1) - (dim + 1) + 1);
-            }
+            copyIndices(indices, resIndices, dim, keepDims);
 
             float v = this.get(indices);
             int dimMaxIdx = (int) res.get(resIndices);
@@ -538,65 +430,20 @@ public class NDArray implements Iterable<Float> {
         return res;
     }
 
-    private NDArray reduceAlongDimension(int dim, boolean keepDims, ElementWiseReduceOperator op) {
-        int len = shape.length;
-        dim = dim < 0 ? len + dim : dim;
-
-        if (dim < 0 || dim >= len) {
-            throw new IllegalArgumentException(
-                    "dim %d is out of bounds for array of dimension %d".formatted(dim, len));
-        }
-
-        int[] newShape = reduceShape(shape, dim, keepDims);
-
-        Flags.Contiguous contiguous = getContiguous();
-        if ((dim == len - 1 && contiguous == Flags.Contiguous.C)
-                || (dim == 0 && contiguous == Flags.Contiguous.F)) {
-            int axisLen = shape[dim];
-            float[] resData = new float[ShapeUtil.getSize(newShape)];
-            for (int i = 0; i < resData.length; i++) {
-                resData[i] = elementWiseReduce(data, i * axisLen, axisLen, op);
-            }
-            return NDArrays.of(newShape, resData, contiguous);
-        }
-
-        NDArray res = NDArrays.fill(newShape, op.getInit());
-        int[] resIndices = new int[res.shape.length];
-        for (int[] indices : this.indices()) {
-            if (0 < dim) {
-                System.arraycopy(indices, 0, resIndices, 0, dim);
-            }
-
-            if ((dim + 1) <= (len - 1)) {
-                System.arraycopy(
-                        indices,
-                        dim + 1,
-                        resIndices,
-                        keepDims ? dim + 1 : dim,
-                        (len - 1) - (dim + 1) + 1);
-            }
-
-            float f = this.get(indices);
-            float curt = res.get(resIndices);
-            res.set(resIndices, op.processSingle(curt, f));
-        }
-
-        return res;
+    public NDArray maximum(float v) {
+        return this.maximum(NDArrays.ofScalar(v));
     }
 
-    private float elementWiseReduce(float[] A, int offset, int len, ElementWiseReduceOperator op) {
-        int i = 0;
-        FloatVector temp = FloatVector.broadcast(SPECIES, op.getInit());
-        for (; i < SPECIES.loopBound(len); i += SPECIES_LEN) {
-            var v = FloatVector.fromArray(SPECIES, A, offset + i);
-            temp = v.lanewise(op.vectorOperator, temp);
-        }
+    public NDArray maximum(NDArray other) {
+        return ElementWiseBinaryOperator.MAX.performBinaryOperator(this, other);
+    }
 
-        float res = temp.reduceLanes(op.vectorOperator);
-        for (; i < len; i++) {
-            res = op.processSingle(A[offset + i], res);
-        }
-        return res;
+    public NDArray minimum(float v) {
+        return this.minimum(NDArrays.ofScalar(v));
+    }
+
+    public NDArray minimum(NDArray other) {
+        return ElementWiseBinaryOperator.MIN.performBinaryOperator(this, other);
     }
 
     public NDArray add(float other) {
@@ -604,28 +451,7 @@ public class NDArray implements Iterable<Float> {
     }
 
     public NDArray add(NDArray other) {
-        if (elementwiseOperable(this, other)) {
-            NDArray res = NDArrays.zerosLike(this);
-
-            float[] A = this.data;
-            float[] B = other.data;
-            float[] C = res.data;
-
-            int i = 0;
-            for (; i < SPECIES.loopBound(data.length); i += SPECIES_LEN) {
-                var va = FloatVector.fromArray(SPECIES, this.data, i);
-                var vb = FloatVector.fromArray(SPECIES, other.data, i);
-                va.add(vb).intoArray(C, i);
-            }
-
-            for (; i < data.length; i++) {
-                C[i] = A[i] + B[i];
-            }
-
-            return res;
-        }
-
-        return perform(this, other, (a, b) -> a + b);
+        return ElementWiseBinaryOperator.ADD.performBinaryOperator(this, other);
     }
 
     public NDArray sub(float other) {
@@ -633,28 +459,7 @@ public class NDArray implements Iterable<Float> {
     }
 
     public NDArray sub(NDArray other) {
-        if (elementwiseOperable(this, other)) {
-            NDArray res = NDArrays.zerosLike(this);
-
-            float[] A = this.data;
-            float[] B = other.data;
-            float[] C = res.data;
-
-            int i = 0;
-            for (; i < SPECIES.loopBound(data.length); i += SPECIES_LEN) {
-                var va = FloatVector.fromArray(SPECIES, this.data, i);
-                var vb = FloatVector.fromArray(SPECIES, other.data, i);
-                va.sub(vb).intoArray(C, i);
-            }
-
-            for (; i < data.length; i++) {
-                C[i] = A[i] - B[i];
-            }
-
-            return res;
-        }
-
-        return perform(this, other, (a, b) -> a - b);
+        return ElementWiseBinaryOperator.SUB.performBinaryOperator(this, other);
     }
 
     public NDArray mul(float other) {
@@ -662,28 +467,7 @@ public class NDArray implements Iterable<Float> {
     }
 
     public NDArray mul(NDArray other) {
-        if (elementwiseOperable(this, other)) {
-            NDArray res = NDArrays.zerosLike(this);
-
-            float[] A = this.data;
-            float[] B = other.data;
-            float[] C = res.data;
-
-            int i = 0;
-            for (; i < SPECIES.loopBound(data.length); i += SPECIES_LEN) {
-                var va = FloatVector.fromArray(SPECIES, this.data, i);
-                var vb = FloatVector.fromArray(SPECIES, other.data, i);
-                va.mul(vb).intoArray(C, i);
-            }
-
-            for (; i < data.length; i++) {
-                C[i] = A[i] * B[i];
-            }
-
-            return res;
-        }
-
-        return perform(this, other, (a, b) -> a * b);
+        return ElementWiseBinaryOperator.MUL.performBinaryOperator(this, other);
     }
 
     public NDArray div(float other) {
@@ -691,36 +475,15 @@ public class NDArray implements Iterable<Float> {
     }
 
     public NDArray div(NDArray other) {
-        if (elementwiseOperable(this, other)) {
-            NDArray res = NDArrays.zerosLike(this);
-
-            float[] A = this.data;
-            float[] B = other.data;
-            float[] C = res.data;
-
-            int i = 0;
-            for (; i < SPECIES.loopBound(data.length); i += SPECIES_LEN) {
-                var va = FloatVector.fromArray(SPECIES, this.data, i);
-                var vb = FloatVector.fromArray(SPECIES, other.data, i);
-                va.div(vb).intoArray(C, i);
-            }
-
-            for (; i < data.length; i++) {
-                C[i] = A[i] / B[i];
-            }
-
-            return res;
-        }
-
-        return perform(this, other, (a, b) -> a / b);
+        return ElementWiseBinaryOperator.DIV.performBinaryOperator(this, other);
     }
 
     public NDArray log() {
-        return performElementwise(ElementWiseUnaryOperator.LOG);
+        return ElementWiseUnaryOperator.LOG.performElementwise(this);
     }
 
     public NDArray exp() {
-        return performElementwise(ElementWiseUnaryOperator.EXP);
+        return ElementWiseUnaryOperator.EXP.performElementwise(this);
     }
 
     private float[] performIteratively(NDArray a, FloatUnaryOperator op) {
@@ -732,39 +495,6 @@ public class NDArray implements Iterable<Float> {
             output[i] = op.applyAsFloat(va);
         }
         return output;
-    }
-
-    public NDArray performElementwise(FloatUnaryOperator op) {
-        assert elementwiseOperable(this);
-        NDArray res = NDArrays.zerosLike(this);
-        float[] A = this.data;
-        float[] B = res.data;
-
-        for (int i = 0; i < A.length; i++) {
-            B[i] = op.applyAsFloat(A[i]);
-        }
-
-        return res;
-    }
-
-    public NDArray performElementwise(ElementWiseUnaryOperator op) {
-        assert elementwiseOperable(this);
-        NDArray res = NDArrays.zerosLike(this);
-        float[] A = this.data;
-        float[] B = res.data;
-
-        int len = A.length;
-        int i = 0;
-        for (; i < SPECIES.loopBound(len); i += SPECIES_LEN) {
-            var va = FloatVector.fromArray(SPECIES, A, i);
-            va.lanewise(op.vectorOperator).intoArray(B, i);
-        }
-
-        for (; i < len; i++) {
-            B[i] = op.processSingle(A[i]);
-        }
-
-        return res;
     }
 
     public NDArray reshape(int... newShape) {
@@ -936,6 +666,6 @@ public class NDArray implements Iterable<Float> {
     }
 
     public NDArray addEnum(NDArray other) {
-        return ElementWiseBinaryOperator.ADD.performElementwise(this, other);
+        return null;
     }
 }

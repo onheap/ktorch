@@ -2,7 +2,7 @@ package core.tensor
 
 import kotlin.collections.*
 import ndarray.NDArrays
-import ndarray.Util
+import ndarray.utils.Util
 
 object Tensors {
     fun create(

@@ -60,7 +60,7 @@ jmh {
     //    timeOnIteration.set("10s")  // Default is '10 s'
 
     includes.addAll("benchmarks.NDArrayImplementationBenchmark")
-//        includes.addAll("benchmarks.JavaMatrixMultiplicationBenchmark")
+    //        includes.addAll("benchmarks.JavaMatrixMultiplicationBenchmark")
 }
 
 tasks.jmhRunBytecodeGenerator { jvmArgs.addAll("--add-modules=jdk.incubator.vector") }

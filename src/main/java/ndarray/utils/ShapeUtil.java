@@ -1,6 +1,6 @@
-package ndarray;
+package ndarray.utils;
 
-import static ndarray.Util.arrOf;
+import static ndarray.utils.Util.arrOf;
 
 import java.util.Arrays;
 
@@ -42,6 +42,22 @@ public class ShapeUtil {
         }
 
         return false;
+    }
+
+    public static void copyIndices(int[] indices, int[] resIndices, int dim, boolean keepDims) {
+        int len = indices.length;
+        if (0 < dim) {
+            System.arraycopy(indices, 0, resIndices, 0, dim);
+        }
+
+        if ((dim + 1) <= (len - 1)) {
+            System.arraycopy(
+                    indices,
+                    dim + 1,
+                    resIndices,
+                    keepDims ? dim + 1 : dim,
+                    (len - 1) - (dim + 1) + 1);
+        }
     }
 
     public static int[] constrainIndices(int[] indices, int[] shape) {

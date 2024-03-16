@@ -38,7 +38,6 @@ import org.openjdk.jmh.annotations.*;
  * JavaMatrixMultiplicationBenchmark.mmulBlockedVectorAuto    1024  avgt    3  24.437 ± 1.214  ms/op
  * JavaMatrixMultiplicationBenchmark.mmulNDImpl               1024  avgt    3  10.927 ± 0.964  ms/op
  */
-
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
