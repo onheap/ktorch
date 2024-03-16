@@ -100,6 +100,7 @@ https://github.com/tinygrad/tinygrad/blob/91a352a8e2697828a4b1eafa2bdc1a9a3b7def
 # TODO List
 * Get sub NDArray by indices
 * Make matmul applicable for 1-d arrays, ref [implementation in mlx](https://github.com/ml-explore/mlx/blob/026ef9aae4ba33743e34bff554529a2b6ff7ab54/mlx/ops.cpp#L1934-L1941)
+* Unroll matmul, ref [llama2.java](https://github.com/mukel/llama2.java/blob/80f5a858c8c44bbf4358cc3f0c3a281e9b7c03bc/Llama2.java#L294)
 * Benchmark with flame graph & memory usage
 
 
@@ -122,5 +123,6 @@ https://github.com/tinygrad/tinygrad/blob/91a352a8e2697828a4b1eafa2bdc1a9a3b7def
 * https://github.com/deepjavalibrary/djl
 * https://github.com/lessthanoptimal/ejml
 * https://github.com/ml-explore/mlx
+* https://github.com/mukel/llama2.java
 * https://github.com/padreati/rapaio
 * https://github.com/Kotlin/multik
