@@ -1,11 +1,14 @@
 package ndarray;
 
-import static ndarray.utils.ShapeUtil.*;
-import static ndarray.utils.Util.*;
+import static ndarray.util.ShapeUtil.*;
+import static ndarray.util.Util.*;
 
 import java.util.Arrays;
 import java.util.Iterator;
-import ndarray.utils.ShapeUtil;
+import ndarray.operator.FloatBinaryOperator;
+import ndarray.operator.FloatUnaryOperator;
+import ndarray.util.Flags;
+import ndarray.util.ShapeUtil;
 
 public class NDArrays {
 
@@ -127,6 +130,17 @@ public class NDArrays {
         }
 
         return performBroadcastly(a, b, op);
+    }
+
+    protected static float[] performIteratively(NDArray a, FloatUnaryOperator op) {
+        Iterator<Float> A = a.iterator();
+        float[] output = new float[a.getSize()];
+
+        for (int i = 0; i < output.length; i++) {
+            float va = A.next();
+            output[i] = op.applyAsFloat(va);
+        }
+        return output;
     }
 
     protected static NDArray performIteratively(NDArray a, NDArray b, FloatBinaryOperator op) {

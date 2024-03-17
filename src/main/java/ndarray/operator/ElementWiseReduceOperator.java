@@ -1,16 +1,16 @@
 package ndarray.operator;
 
-import static ndarray.utils.ShapeUtil.copyIndices;
-import static ndarray.utils.ShapeUtil.reduceShape;
-import static ndarray.utils.Util.SPECIES;
-import static ndarray.utils.Util.SPECIES_LEN;
+import static ndarray.util.ShapeUtil.copyIndices;
+import static ndarray.util.ShapeUtil.reduceShape;
+import static ndarray.util.Util.SPECIES;
+import static ndarray.util.Util.SPECIES_LEN;
 
 import jdk.incubator.vector.FloatVector;
 import jdk.incubator.vector.VectorOperators;
-import ndarray.Flags;
 import ndarray.NDArray;
 import ndarray.NDArrays;
-import ndarray.utils.ShapeUtil;
+import ndarray.util.Flags;
+import ndarray.util.ShapeUtil;
 
 public enum ElementWiseReduceOperator {
     SUM(VectorOperators.ADD) {

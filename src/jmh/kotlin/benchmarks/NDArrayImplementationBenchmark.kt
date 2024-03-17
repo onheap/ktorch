@@ -1,29 +1,28 @@
 package benchmarks
 
 import java.util.concurrent.TimeUnit
-import jdk.incubator.vector.*
 import kotlin.random.Random
 import ndarray.NDArray
 import ndarray.NDArrays
 import org.openjdk.jmh.annotations.*
 
+// spotless:off
 /**
- * Benchmark (size) Mode Cnt Score Error Units NDArrayImplementationBenchmark.add 64 avgt 3 0.001 ±
- * 0.001 ms/op NDArrayImplementationBenchmark.add 1024 avgt 3 0.187 ± 0.006 ms/op
- * NDArrayImplementationBenchmark.add 4096 avgt 3 4.010 ± 0.141 ms/op
- * NDArrayImplementationBenchmark.addBroadcast 64 avgt 3 0.061 ± 0.003 ms/op
- * NDArrayImplementationBenchmark.addBroadcast 1024 avgt 3 15.547 ± 0.304 ms/op
- * NDArrayImplementationBenchmark.addBroadcast 4096 avgt 3 250.627 ± 2.887 ms/op
- * NDArrayImplementationBenchmark.addEnum 64 avgt 3 0.013 ± 0.001 ms/op
- * NDArrayImplementationBenchmark.addEnum 1024 avgt 3 3.329 ± 0.046 ms/op
- * NDArrayImplementationBenchmark.addEnum 4096 avgt 3 53.311 ± 2.627 ms/op
- * NDArrayImplementationBenchmark.addIterative 64 avgt 3 0.001 ± 0.001 ms/op
- * NDArrayImplementationBenchmark.addIterative 1024 avgt 3 0.188 ± 0.008 ms/op
- * NDArrayImplementationBenchmark.addIterative 4096 avgt 3 3.986 ± 0.079 ms/op
- * NDArrayImplementationBenchmark.addVector 64 avgt 3 0.001 ± 0.001 ms/op
- * NDArrayImplementationBenchmark.addVector 1024 avgt 3 0.190 ± 0.024 ms/op
- * NDArrayImplementationBenchmark.addVector 4096 avgt 3 3.987 ± 0.016 ms/op
+ * Benchmark                                    (size)  Mode  Cnt    Score    Error  Units
+ * NDArrayImplementationBenchmark.add               64  avgt    3    0.013 ±  0.001  ms/op
+ * NDArrayImplementationBenchmark.add             1024  avgt    3    3.287 ±  0.078  ms/op
+ * NDArrayImplementationBenchmark.add             4096  avgt    3   52.734 ±  0.736  ms/op
+ * NDArrayImplementationBenchmark.addBroadcast      64  avgt    3    0.061 ±  0.001  ms/op
+ * NDArrayImplementationBenchmark.addBroadcast    1024  avgt    3   15.271 ±  0.232  ms/op
+ * NDArrayImplementationBenchmark.addBroadcast    4096  avgt    3  246.703 ± 10.302  ms/op
+ * NDArrayImplementationBenchmark.addIterative      64  avgt    3    0.001 ±  0.001  ms/op
+ * NDArrayImplementationBenchmark.addIterative    1024  avgt    3    0.182 ±  0.024  ms/op
+ * NDArrayImplementationBenchmark.addIterative    4096  avgt    3    3.915 ±  0.016  ms/op
+ * NDArrayImplementationBenchmark.addVector         64  avgt    3    0.001 ±  0.001  ms/op
+ * NDArrayImplementationBenchmark.addVector       1024  avgt    3    0.182 ±  0.006  ms/op
+ * NDArrayImplementationBenchmark.addVector       4096  avgt    3    3.905 ±  0.109  ms/op
  */
+// spotless:on
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)

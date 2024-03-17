@@ -5,8 +5,8 @@ import ai.djl.ndarray.NDManager
 import ai.djl.nn.Activation
 import ai.djl.training.GradientCollector
 import kotlin.random.Random
-import ndarray.utils.Util.arrOf
-import ndarray.utils.Util.arrOfF
+import ndarray.util.Util.arrOf
+import ndarray.util.Util.arrOfF
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test

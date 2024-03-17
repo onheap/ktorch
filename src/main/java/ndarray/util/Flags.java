@@ -1,4 +1,4 @@
-package ndarray;
+package ndarray.util;
 
 import java.util.Arrays;
 

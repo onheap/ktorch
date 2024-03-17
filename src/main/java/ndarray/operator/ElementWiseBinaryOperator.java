@@ -1,7 +1,7 @@
 package ndarray.operator;
 
 import static ndarray.NDArrays.perform;
-import static ndarray.utils.Util.elementwiseOperable;
+import static ndarray.util.Util.elementwiseOperable;
 
 import jdk.incubator.vector.FloatVector;
 import jdk.incubator.vector.VectorOperators;

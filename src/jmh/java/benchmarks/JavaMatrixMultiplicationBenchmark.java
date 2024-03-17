@@ -33,11 +33,13 @@ import java.util.stream.IntStream;
 import jdk.incubator.vector.*;
 import org.openjdk.jmh.annotations.*;
 
+// spotless:off
 /**
  * Benchmark                                                (size)  Mode  Cnt   Score   Error  Units
  * JavaMatrixMultiplicationBenchmark.mmulBlockedVectorAuto    1024  avgt    3  24.437 ± 1.214  ms/op
  * JavaMatrixMultiplicationBenchmark.mmulNDImpl               1024  avgt    3  10.927 ± 0.964  ms/op
  */
+// spotless:on
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)

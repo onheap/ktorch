@@ -1,29 +1,14 @@
-package ndarray.utils;
+package ndarray.util;
 
 import java.util.Arrays;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ForkJoinPool;
-import java.util.function.IntConsumer;
-import java.util.stream.IntStream;
 import jdk.incubator.vector.FloatVector;
 import jdk.incubator.vector.VectorSpecies;
-import ndarray.Flags;
 import ndarray.NDArray;
 
 public class Util {
 
     public static final VectorSpecies<Float> SPECIES = FloatVector.SPECIES_PREFERRED;
     public static final int SPECIES_LEN = SPECIES.length();
-
-    @FunctionalInterface
-    public interface FloatUnaryOperator {
-        float applyAsFloat(float operand);
-    }
-
-    @FunctionalInterface
-    public interface FloatBinaryOperator {
-        float applyAsFloat(float a, float b);
-    }
 
     public static int[] arrOf(int... a) {
         return a;
@@ -87,19 +72,5 @@ public class Util {
 
     public static boolean elementwiseOperable(NDArray a) {
         return a.getContiguous() != Flags.Contiguous.NOT;
-    }
-
-    public static class Concurrent {
-        // https://github.com/lessthanoptimal/ejml/blob/SNAPSHOT/main/ejml-core/src/pabeles/concurrency/ConcurrencyOps.java
-        private static final ForkJoinPool POOL = new ForkJoinPool();
-
-        public static void loopFor(int start, int endExclusive, IntConsumer consumer) {
-            try {
-                POOL.submit(() -> IntStream.range(start, endExclusive).parallel().forEach(consumer))
-                        .get();
-            } catch (InterruptedException | ExecutionException e) {
-                throw new RuntimeException(e);
-            }
-        }
     }
 }

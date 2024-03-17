@@ -2,7 +2,7 @@ package ndarray
 
 import ai.djl.ndarray.NDManager
 import kotlin.random.Random
-import ndarray.utils.Util.*
+import ndarray.util.Util.*
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test

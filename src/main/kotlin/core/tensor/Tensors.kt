@@ -2,7 +2,7 @@ package core.tensor
 
 import kotlin.collections.*
 import ndarray.NDArrays
-import ndarray.utils.Util
+import ndarray.operator.FloatBinaryOperator
 
 object Tensors {
     fun create(
@@ -38,7 +38,7 @@ object Tensors {
             data = NDArrays.stack(*tensors.map { (it as JvmTensor).data }.toTypedArray()))
     }
 
-    fun perform(a: Tensor, b: Tensor, op: Util.FloatBinaryOperator): Tensor {
+    fun perform(a: Tensor, b: Tensor, op: FloatBinaryOperator): Tensor {
         return JvmTensor(data = NDArrays.perform((a as JvmTensor).data, (b as JvmTensor).data, op))
     }
 }

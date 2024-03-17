@@ -1,8 +1,8 @@
 package ndarray.operator;
 
-import static ndarray.utils.Util.SPECIES;
-import static ndarray.utils.Util.SPECIES_LEN;
-import static ndarray.utils.Util.elementwiseOperable;
+import static ndarray.util.Util.SPECIES;
+import static ndarray.util.Util.SPECIES_LEN;
+import static ndarray.util.Util.elementwiseOperable;
 
 import jdk.incubator.vector.FloatVector;
 import jdk.incubator.vector.VectorOperators;

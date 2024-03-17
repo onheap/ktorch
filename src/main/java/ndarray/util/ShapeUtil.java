@@ -1,6 +1,6 @@
-package ndarray.utils;
+package ndarray.util;
 
-import static ndarray.utils.Util.arrOf;
+import static ndarray.util.Util.arrOf;
 
 import java.util.Arrays;
 
@@ -151,6 +151,34 @@ public class ShapeUtil {
             }
         }
         return true;
+    }
+
+    public static int[] reshape(int[] shape, int[] newShape) {
+        int prod = 1;
+        int negIdx = -1;
+        for (int i = 0; i < newShape.length; i++) {
+            if (newShape[i] < 0) {
+                if (negIdx != -1) {
+                    throw new IllegalArgumentException("more than one negative number in shape");
+                }
+                negIdx = i;
+            } else {
+                prod *= newShape[i];
+            }
+        }
+
+        int size = getSize(shape);
+        if (size != prod && (negIdx == -1 || size % prod != 0)) {
+            throw new IllegalArgumentException(
+                    "can not convert to new shape, size: %d, newShape: %s"
+                            .formatted(size, Arrays.toString(newShape)));
+        }
+
+        if (negIdx != -1) {
+            newShape = Arrays.copyOf(newShape, newShape.length);
+            newShape[negIdx] = size / prod;
+        }
+        return newShape;
     }
 
     public static void main(String[] args) {

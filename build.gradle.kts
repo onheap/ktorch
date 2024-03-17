@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.js.inline.clean.removeUnusedImports
 
 java {
     sourceCompatibility = JavaVersion.VERSION_21
@@ -60,7 +61,7 @@ jmh {
     //    timeOnIteration.set("10s")  // Default is '10 s'
 
     includes.addAll("benchmarks.NDArrayImplementationBenchmark")
-    //        includes.addAll("benchmarks.JavaMatrixMultiplicationBenchmark")
+    //    includes.addAll("benchmarks.BenchmarkLibraries")
 }
 
 tasks.jmhRunBytecodeGenerator { jvmArgs.addAll("--add-modules=jdk.incubator.vector") }
@@ -72,6 +73,8 @@ spotless {
         importOrder()
         removeUnusedImports()
 
+        toggleOffOn() // enables the use of // spotless:off and // spotless:on
+
         // apply a specific flavor of google-java-format
         googleJavaFormat("1.19.1").aosp().reflowLongStrings().skipJavadocFormatting()
         // fix formatting of type annotations
@@ -81,6 +84,8 @@ spotless {
     kotlin {
         // by default the target is every '.kt' and '.kts` file in the java sourcesets
         ktfmt().dropboxStyle()
+
+        toggleOffOn() // enables the use of // spotless:off and // spotless:on
     }
     kotlinGradle {
         target("*.gradle.kts") // default target for kotlinGradle

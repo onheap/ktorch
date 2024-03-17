@@ -1,21 +1,20 @@
 package ndarray;
 
-import static ndarray.utils.ShapeUtil.*;
-import static ndarray.utils.Util.*;
+import static ndarray.util.ShapeUtil.copyIndices;
+import static ndarray.util.ShapeUtil.reduceShape;
+import static ndarray.util.Util.reverseArray;
 
-import java.text.DecimalFormat;
-import java.util.Arrays;
 import java.util.Iterator;
-import java.util.NoSuchElementException;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import jdk.incubator.vector.FloatVector;
-import jdk.incubator.vector.VectorOperators;
 import jdk.incubator.vector.VectorSpecies;
+import ndarray.iterator.IndicesIterator;
+import ndarray.iterator.NDArrayIterator;
 import ndarray.operator.ElementWiseBinaryOperator;
 import ndarray.operator.ElementWiseReduceOperator;
 import ndarray.operator.ElementWiseUnaryOperator;
-import ndarray.utils.ShapeUtil;
+import ndarray.util.Flags;
+import ndarray.util.PresentUtil;
+import ndarray.util.ShapeUtil;
 
 public class NDArray implements Iterable<Float> {
     private static final VectorSpecies<Float> SPECIES = FloatVector.SPECIES_PREFERRED;
@@ -56,59 +55,16 @@ public class NDArray implements Iterable<Float> {
         return ShapeUtil.getSize(shape);
     }
 
+    public int dim() {
+        return shape.length;
+    }
+
     public Iterator<Float> iterator() {
-        return new Iterator<>() {
-            private int curt = 0;
-            private final int size = getSize();
-            private final boolean isCContiguous = getContiguous() == Flags.Contiguous.C;
-
-            private final int[] indices = isCContiguous ? null : new int[shape.length];
-
-            @Override
-            public boolean hasNext() {
-                return curt < size;
-            }
-
-            @Override
-            public Float next() {
-                if (curt >= size) {
-                    throw new NoSuchElementException(
-                            "iterator reached the end, curt: %d, size: %d".formatted(curt, size));
-                }
-
-                if (isCContiguous) {
-                    return data[curt++];
-                } else {
-                    return get(calculateIndices(curt++, shape, indices));
-                }
-            }
-        };
+        return new NDArrayIterator(this);
     }
 
     public Iterable<int[]> indices() {
-        return () ->
-                new Iterator<>() {
-                    private int curt = 0;
-                    private final int size = getSize();
-
-                    private final int[] indices = new int[shape.length];
-
-                    @Override
-                    public boolean hasNext() {
-                        return curt < size;
-                    }
-
-                    @Override
-                    public int[] next() {
-                        if (curt >= size) {
-                            throw new NoSuchElementException(
-                                    "iterator reached the end, curt: %d, size: %d"
-                                            .formatted(curt, size));
-                        }
-
-                        return calculateIndices(curt++, shape, indices);
-                    }
-                };
+        return new IndicesIterator(this).iterable();
     }
 
     public Flags.Contiguous getContiguous() {
@@ -130,206 +86,8 @@ public class NDArray implements Iterable<Float> {
         return NDArrays.of(reverseArray(this.shape), reverseArray(this.strides), this.data);
     }
 
-    private NDArray matmulCC(NDArray other) {
-        NDArray res = NDArrays.of(arrOf(this.shape[0], other.shape[1]));
-
-        float[] A = this.data;
-        float[] B = other.data;
-        float[] C = res.data;
-
-        int ANumRows = this.shape[0], ANumCols = this.shape[1];
-        int BNumRows = other.shape[0], BNumCols = other.shape[1];
-        int CNumRows = ANumRows, CNumCols = BNumCols;
-
-        Concurrent.loopFor(
-                0,
-                ANumRows,
-                i -> {
-                    int indexCBase = i * CNumCols;
-                    {
-                        // init the row in C
-                        float valA = A[i * ANumCols];
-                        int j = 0;
-                        for (; j < SPECIES.loopBound(BNumCols); j += SPECIES_LEN) {
-                            var vb = FloatVector.fromArray(SPECIES, B, j);
-                            vb.mul(valA).intoArray(C, indexCBase + j);
-                        }
-
-                        for (; j < BNumCols; j++) {
-                            C[indexCBase + j] = valA * B[j];
-                        }
-                    }
-
-                    // sum up the final results
-                    for (int k = 1; k < BNumRows; k++) {
-                        int indexB = k * BNumCols;
-                        float valA = A[i * ANumCols + k];
-
-                        int j = 0;
-                        var va = FloatVector.broadcast(SPECIES, valA);
-                        for (; j < SPECIES.loopBound(BNumCols); j += SPECIES_LEN) {
-                            var vb = FloatVector.fromArray(SPECIES, B, indexB + j);
-                            var vc = FloatVector.fromArray(SPECIES, C, indexCBase + j);
-                            va.fma(vb, vc).intoArray(C, indexCBase + j);
-                            // vc.add(vb.mul(valA)).intoArray(C, indexCBase + j);
-                        }
-
-                        for (; j < BNumCols; j++) {
-                            C[indexCBase + j] += valA * B[indexB + j];
-                        }
-                    }
-                });
-
-        return res;
-    }
-
-    private NDArray matmulCF(NDArray other) {
-        NDArray res = NDArrays.of(arrOf(this.shape[0], other.shape[1]));
-
-        float[] A = this.data;
-        float[] B = other.data;
-        float[] C = res.data;
-
-        int ANumRows = this.shape[0], ANumCols = this.shape[1];
-        int BNumRows = other.shape[0], BNumCols = other.shape[1];
-        int CNumRows = ANumRows, CNumCols = BNumCols;
-
-        int bound = SPECIES.loopBound(ANumCols);
-
-        Concurrent.loopFor(
-                0,
-                ANumRows,
-                i -> {
-                    int indexABase = i * ANumCols;
-                    int cIndex = i * CNumCols;
-
-                    for (int xB = 0; xB < BNumCols; xB++) {
-                        int indexB = xB * BNumRows;
-
-                        int j = 0;
-                        var sum = FloatVector.zero(SPECIES);
-                        for (; j < bound; j += SPECIES_LEN) {
-                            var va = FloatVector.fromArray(SPECIES, A, indexABase + j);
-                            var vb = FloatVector.fromArray(SPECIES, B, indexB + j);
-                            sum = va.fma(vb, sum);
-                        }
-
-                        float total = sum.reduceLanes(VectorOperators.ADD);
-                        for (; j < ANumCols; j++) {
-                            total += A[indexABase + j] * B[indexB + j];
-                        }
-
-                        C[cIndex++] = total;
-                    }
-                });
-
-        return res;
-    }
-
-    private NDArray matmulFC(NDArray other) {
-        NDArray res = NDArrays.of(arrOf(this.shape[0], other.shape[1]));
-
-        float[] A = this.data;
-        float[] B = other.data;
-        float[] C = res.data;
-
-        int ANumRows = this.shape[0], ANumCols = this.shape[1];
-        int BNumRows = other.shape[0], BNumCols = other.shape[1];
-        int CNumRows = ANumRows, CNumCols = BNumCols;
-
-        Concurrent.loopFor(
-                0,
-                ANumRows,
-                i -> {
-                    int indexCBase = i * CNumCols;
-
-                    {
-                        // first assign R
-                        float valA = A[i];
-                        int j = 0;
-                        for (; j < SPECIES.loopBound(BNumCols); j += SPECIES_LEN) {
-                            var vb = FloatVector.fromArray(SPECIES, B, j);
-                            vb.mul(valA).intoArray(C, indexCBase + j);
-                        }
-
-                        for (; j < BNumCols; j++) {
-                            C[indexCBase + j] = valA * B[j];
-                        }
-                    }
-
-                    // now increment it
-                    for (int k = 1; k < ANumCols; k++) {
-                        int indexB = k * BNumCols;
-                        float valA = A[k * ANumRows + i];
-
-                        int j = 0;
-                        for (; j < SPECIES.loopBound(BNumCols); j += SPECIES_LEN) {
-                            var vb = FloatVector.fromArray(SPECIES, B, indexB + j);
-                            var vc = FloatVector.fromArray(SPECIES, C, indexCBase + j);
-                            vc.add(vb.mul(valA)).intoArray(C, indexCBase + j);
-                        }
-
-                        for (; j < BNumCols; j++) {
-                            C[indexCBase + j] += valA * B[indexB + j];
-                        }
-                    }
-                });
-
-        return res;
-    }
-
-    private NDArray matmulFF(NDArray other) {
-        NDArray res = NDArrays.of(arrOf(this.shape[0], other.shape[1]));
-
-        float[] A = this.data;
-        float[] B = other.data;
-        float[] C = res.data;
-
-        int ANumRows = this.shape[0], ANumCols = this.shape[1];
-        int BNumRows = other.shape[0], BNumCols = other.shape[1];
-        int CNumRows = ANumRows, CNumCols = BNumCols;
-
-        Concurrent.loopFor(
-                0,
-                ANumRows,
-                i -> {
-                    int cIndex = i * BNumCols;
-                    int indexB = 0;
-                    for (int j = 0; j < BNumCols; j++) {
-                        int indexA = i;
-                        int end = indexB + BNumRows;
-
-                        float total = 0;
-                        while (indexB < end) {
-                            total += A[indexA] * B[indexB++];
-                            indexA += ANumRows;
-                        }
-
-                        C[cIndex++] = total;
-                    }
-                });
-
-        return res;
-    }
-
     public NDArray matmul(NDArray other) {
-        if (this.shape.length != 2 || other.shape.length != 2 || this.shape[1] != other.shape[0]) {
-            throw new IllegalArgumentException(
-                    "MatMul only supports dense Matrix(2D-Array) right now, shapeA: %s, shapeB: %s."
-                            .formatted(Arrays.toString(this.shape), Arrays.toString(other.shape)));
-        }
-
-        if (Flags.isCContiguous(this.flags) && Flags.isCContiguous(other.flags)) {
-            return matmulCC(other);
-        } else if (Flags.isCContiguous(this.flags) && Flags.isFContiguous(other.flags)) {
-            return matmulCF(other);
-        } else if (Flags.isFContiguous(this.flags) && Flags.isCContiguous(other.flags)) {
-            return matmulFC(other);
-        } else if (Flags.isFContiguous(this.flags) && Flags.isFContiguous(other.flags)) {
-            return matmulFF(other);
-        }
-
-        throw new IllegalArgumentException("Unsupported ordering");
+        return MatMul.matmul(this, other);
     }
 
     public NDArray sum() {
@@ -486,48 +244,15 @@ public class NDArray implements Iterable<Float> {
         return ElementWiseUnaryOperator.EXP.performElementwise(this);
     }
 
-    private float[] performIteratively(NDArray a, FloatUnaryOperator op) {
-        Iterator<Float> A = a.iterator();
-        float[] output = new float[a.getSize()];
-
-        for (int i = 0; i < output.length; i++) {
-            float va = A.next();
-            output[i] = op.applyAsFloat(va);
-        }
-        return output;
-    }
-
     public NDArray reshape(int... newShape) {
-        int prod = 1;
-        int negIdx = -1;
-        for (int i = 0; i < newShape.length; i++) {
-            if (newShape[i] < 0) {
-                if (negIdx != -1) {
-                    throw new IllegalArgumentException("more than one negative number in shape");
-                }
-                negIdx = i;
-            } else {
-                prod *= newShape[i];
-            }
-        }
-
-        int size = getSize();
-        if (size != prod && (negIdx == -1 || size % prod != 0)) {
-            throw new IllegalArgumentException(
-                    "can not convert to new shape, size: %d, newShape: %s"
-                            .formatted(size, Arrays.toString(newShape)));
-        }
-
-        if (negIdx != -1) {
-            newShape = Arrays.copyOf(newShape, newShape.length);
-            newShape[negIdx] = size / prod;
-        }
+        newShape = ShapeUtil.reshape(shape, newShape);
 
         if (getContiguous() == Flags.Contiguous.C) {
             return NDArrays.of(newShape, data, Flags.Contiguous.C);
         }
 
-        return NDArrays.of(newShape, performIteratively(this, v -> v));
+        // can we make it non-copying?
+        return NDArrays.of(newShape, NDArrays.performIteratively(this, v -> v));
     }
 
     private int getFlatIndex(int[] indices) {
@@ -547,92 +272,20 @@ public class NDArray implements Iterable<Float> {
     }
 
     public float[] toArray() {
-        if (getContiguous() == Flags.Contiguous.C) {
-            return Arrays.copyOf(data, data.length);
-        }
-
-        Iterator<Float> it = iterator();
-        float[] res = new float[getSize()];
-        for (int i = 0; i < res.length; i++) {
-            res[i] = it.next();
-        }
-        return res;
+        return PresentUtil.toArray(this);
     }
 
     public float[][] toMatrix() {
-        if (shape.length != 2) {
-            throw new IllegalStateException(
-                    "Unable to convert to Matrix: shape: %s".formatted(Arrays.toString(shape)));
-        }
-
-        int m = shape[0];
-        int n = shape[1];
-        float[][] res = new float[m][n];
-
-        if (getContiguous() == Flags.Contiguous.C) {
-            for (int i = 0; i < m; i++) {
-                System.arraycopy(data, i * n, res[i], 0, n);
-            }
-            return res;
-        }
-
-        for (int[] idx : indices()) {
-            res[idx[0]][idx[1]] = get(idx);
-        }
-
-        return res;
+        return PresentUtil.toMatrix(this);
     }
 
     @Override
     public String toString() {
-        final var df = new DecimalFormat("##.####");
-        // String a = info() + "\n";
-        String a = "";
-        int len = shape.length;
-
-        a += "[".repeat(len);
-
-        for (int i = 0; i < data.length; i++) {
-            int[] indices = getIndices(i);
-
-            if (i != 0) {
-                int zeros = 0;
-                for (int j = len - 1; j >= 0; j--) {
-                    if (indices[j] == 0) {
-                        zeros++;
-                    } else {
-                        break;
-                    }
-                }
-
-                if (zeros > 0) {
-                    a += "]".repeat(zeros);
-                    a += "\n";
-                    a += " ".repeat(len - zeros);
-                    a += "[".repeat(zeros);
-                } else {
-                    a += ", ";
-                }
-            }
-
-            var f = get(indices);
-            a += df.format(f);
-        }
-
-        a += "]".repeat(len);
-
-        return a;
+        return PresentUtil.toString(this);
     }
 
     public String info() {
-        final Function<int[], String> joinToStr =
-                (int[] arr) ->
-                        Arrays.stream(shape)
-                                .mapToObj(String::valueOf)
-                                .collect(Collectors.joining(",", "(", ")"));
-
-        return "NDArray: %s %s %s"
-                .formatted(joinToStr.apply(shape), joinToStr.apply(strides), getContiguous());
+        return PresentUtil.info(this);
     }
 
     // performance test code
@@ -663,9 +316,5 @@ public class NDArray implements Iterable<Float> {
         }
 
         return res;
-    }
-
-    public NDArray addEnum(NDArray other) {
-        return null;
     }
 }

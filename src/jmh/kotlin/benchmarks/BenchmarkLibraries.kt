@@ -3,7 +3,6 @@ package benchmarks
 import ai.djl.ndarray.NDManager
 import ai.djl.ndarray.types.Shape
 import java.util.concurrent.TimeUnit
-import jdk.incubator.vector.*
 import kotlin.random.Random
 import ndarray.NDArrays
 import org.jetbrains.kotlinx.multik.api.linalg.dot
@@ -11,11 +10,14 @@ import org.jetbrains.kotlinx.multik.api.mk
 import org.jetbrains.kotlinx.multik.api.ndarray
 import org.openjdk.jmh.annotations.*
 
+// spotless:off
 /**
- * Benchmark (size) Mode Cnt Score Error Units BenchmarkLibraries.DJL_Matmul 1024 avgt 3 2.162 ±
- * 1.875 ms/op BenchmarkLibraries.MK_Matmul 1024 avgt 3 7.194 ± 2.491 ms/op
- * BenchmarkLibraries.NDArray_Matmul 1024 avgt 3 11.051 ± 1.086 ms/op
+ * Benchmark                          (size)  Mode  Cnt   Score   Error  Units
+ * BenchmarkLibraries.DJL_Matmul        1024  avgt    3   2.291 ± 3.913  ms/op
+ * BenchmarkLibraries.MK_Matmul         1024  avgt    3   7.588 ± 3.062  ms/op
+ * BenchmarkLibraries.NDArray_Matmul    1024  avgt    3  11.121 ± 1.244  ms/op
  */
+// spotless:on
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
