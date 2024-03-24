@@ -71,19 +71,22 @@ public enum ElementWiseBinaryOperator {
     private NDArray performElementwise(NDArray a, NDArray b) {
         NDArray res = NDArrays.zerosLike(a);
 
-        float[] A = a.getData();
-        float[] B = b.getData();
-        float[] C = res.getData();
+        float[] A = a.getData().array();
+        float[] B = b.getData().array();
+        float[] C = res.getData().array();
+
+        int aOffset = a.getData().offset();
+        int bOffset = b.getData().offset();
 
         int i = 0;
         for (; i < SPECIES.loopBound(C.length); i += SPECIES_LEN) {
-            var va = FloatVector.fromArray(SPECIES, A, i);
-            var vb = FloatVector.fromArray(SPECIES, B, i);
+            var va = FloatVector.fromArray(SPECIES, A, i + aOffset);
+            var vb = FloatVector.fromArray(SPECIES, B, i + bOffset);
             va.lanewise(vectorOperator, vb).intoArray(C, i);
         }
 
         for (; i < C.length; i++) {
-            C[i] = processSingle(A[i], B[i]);
+            C[i] = processSingle(A[i + aOffset], B[i + bOffset]);
         }
 
         return res;

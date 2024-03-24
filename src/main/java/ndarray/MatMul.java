@@ -19,6 +19,12 @@ public class MatMul {
                             .formatted(Arrays.toString(a.shape), Arrays.toString(b.shape)));
         }
 
+        if (a.offset != 0 || b.offset != 0) {
+            throw new IllegalArgumentException(
+                    "MatMul only supports dense Matrix(2D-Array) right now, offsetA: %d, offsetB: %d."
+                            .formatted(a.offset, b.offset));
+        }
+
         if (Flags.isCContiguous(a.flags) && Flags.isCContiguous(b.flags)) {
             return matmulCC(a, b);
         } else if (Flags.isCContiguous(a.flags) && Flags.isFContiguous(b.flags)) {

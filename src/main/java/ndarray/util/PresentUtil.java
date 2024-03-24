@@ -11,7 +11,9 @@ public class PresentUtil {
 
     public static float[] toArray(NDArray a) {
         if (a.getContiguous() == Flags.Contiguous.C) {
-            return Arrays.copyOf(a.getData(), a.getData().length);
+            float[] array = a.getData().array();
+            int offset = a.getData().offset();
+            return Arrays.copyOfRange(array, offset, offset + a.getSize());
         }
 
         Iterator<Float> it = a.iterator();
@@ -34,8 +36,10 @@ public class PresentUtil {
         float[][] res = new float[m][n];
 
         if (a.getContiguous() == Flags.Contiguous.C) {
+            float[] array = a.getData().array();
+            int offset = a.getData().offset();
             for (int i = 0; i < m; i++) {
-                System.arraycopy(a.getData(), i * n, res[i], 0, n);
+                System.arraycopy(array, offset + i * n, res[i], 0, n);
             }
             return res;
         }
@@ -49,9 +53,9 @@ public class PresentUtil {
 
     public static String toString(NDArray a) {
         final var df = new DecimalFormat("##.####");
-        // String s = info() + "\n";
+        int len = a.getDim();
         StringBuilder s = new StringBuilder();
-        int len = a.dim();
+        s.append(info(a));
 
         s.append("[".repeat(len));
 
@@ -94,7 +98,7 @@ public class PresentUtil {
                                 .mapToObj(String::valueOf)
                                 .collect(Collectors.joining(",", "(", ")"));
 
-        return "NDArray: %s %s %s"
+        return "NDArray: %s %s %s\n"
                 .formatted(
                         joinToStr.apply(a.getShape()),
                         joinToStr.apply(a.getStrides()),

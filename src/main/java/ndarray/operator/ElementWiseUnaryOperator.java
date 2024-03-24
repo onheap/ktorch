@@ -35,18 +35,20 @@ public enum ElementWiseUnaryOperator {
     public NDArray performElementwise(NDArray ndArray) {
         assert elementwiseOperable(ndArray);
         NDArray res = NDArrays.zerosLike(ndArray);
-        float[] A = ndArray.getData();
-        float[] B = res.getData();
+        float[] A = ndArray.getData().array();
+        float[] B = res.getData().array();
+
+        int offset = ndArray.getData().offset();
 
         int len = A.length;
         int i = 0;
         for (; i < SPECIES.loopBound(len); i += SPECIES_LEN) {
-            var va = FloatVector.fromArray(SPECIES, A, i);
+            var va = FloatVector.fromArray(SPECIES, A, offset + i);
             va.lanewise(vectorOperator).intoArray(B, i);
         }
 
         for (; i < len; i++) {
-            B[i] = processSingle(A[i]);
+            B[i] = processSingle(A[offset + i]);
         }
 
         return res;

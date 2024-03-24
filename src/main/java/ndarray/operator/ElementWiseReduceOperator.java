@@ -64,8 +64,12 @@ public enum ElementWiseReduceOperator {
                 || (dim == 0 && contiguous == Flags.Contiguous.F)) {
             int axisLen = shape[dim];
             float[] resData = new float[ShapeUtil.getSize(newShape)];
+
+            float[] data = ndArray.getData().array();
+            int offset = ndArray.getData().offset();
+
             for (int i = 0; i < resData.length; i++) {
-                resData[i] = elementWiseReduce(ndArray.getData(), i * axisLen, axisLen);
+                resData[i] = elementWiseReduce(data, offset + i * axisLen, axisLen);
             }
             return NDArrays.of(newShape, resData, contiguous);
         }

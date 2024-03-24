@@ -24,37 +24,13 @@ class NDArrayTest {
 
     @Test
     fun test() {
-        val a = NDArrays.of(arrOfF(1, 3, 4, 2, 6, 0)).reshape(3, 2).transpose()
+        val a = NDArrays.of(arrOfF(1, 2, 3, 4, 5, 6)).reshape(2, 3).transpose()
 
         println(a)
 
-        val b = a.argmax()
+        val b = a.getNDArray(arrOf(1))
 
         printObjects(b)
-    }
-
-    @Test
-    fun testMatMulCCCorrectness() {
-        repeat(100) {
-            val m = Random.nextInt(1, 1024)
-            val n = Random.nextInt(1, 1024)
-            val p = Random.nextInt(1, 1024)
-
-            printMessage("A: $m X $n, B: $n X $p")
-
-            val fa = FloatArray(m * n) { randomFloat() }
-            val fb = FloatArray(n * p) { randomFloat() }
-
-            val A = manager.create(fa, m, n)
-            val B = manager.create(fb, n, p)
-            val C = A.dot(B)
-
-            val a = NDArrays.of(arrOf(m, n), fa)
-            val b = NDArrays.of(arrOf(n, p), fb)
-            val c = a.matmul(b)
-
-            assertNDArrayEquals(C, c)
-        }
     }
 
     @Test
@@ -86,6 +62,113 @@ class NDArrayTest {
             val a = NDArray(shape, f).transpose()
 
             assertNDArrayEquals(A, a)
+        }
+    }
+
+    @Test
+    fun testReshapeCorrectness() {
+        // verify matrix
+        repeat(100) {
+            val m = Random.nextInt(1, 1024)
+            val n = Random.nextInt(1, 1024)
+
+            printMessage("Matrix: $m X $n")
+
+            val f = FloatArray(m * n) { randomFloat() }
+
+            val size = m * n
+            val i = randomDivisibleBy(size)
+            val j = size / i
+
+            val A = manager.create(f, m, n)
+            val B = NDArray(intArrayOf(m, n), f)
+
+            val AT = A.transpose()
+            val BT = B.transpose()
+
+            val a = A.reshape(i.toLong(), j.toLong())
+            val b = B.reshape(i, j)
+
+            assertNDArrayEquals(a, b)
+            assertNDArrayEquals(a.transpose(), b.transpose())
+
+            val at = AT.reshape(i.toLong(), j.toLong())
+            val bt = BT.reshape(i, j)
+
+            assertNDArrayEquals(at, bt)
+            assertNDArrayEquals(at.transpose(), bt.transpose())
+        }
+
+        // verify random
+        repeat(100) {
+            val rank = Random.nextInt(1, 5)
+            val shape = IntArray(rank) { Random.nextInt(1, 6) }
+            val size = shape.fold(1, Int::times)
+            printMessage(shape.joinToString(" X ", "A: "))
+
+            val newRank = Random.nextInt(1, 5)
+            val newShapeList = mutableListOf<Int>()
+
+            if (size == 1) {
+                newShapeList.add(1)
+            } else {
+                var remainSize = size
+                while (remainSize > 1) {
+                    if (newShapeList.size == newRank - 1) {
+                        newShapeList.add(remainSize)
+                        break
+                    }
+                    val curtSize = randomDivisibleBy(remainSize)
+                    newShapeList.add(curtSize)
+                    remainSize /= curtSize
+                }
+            }
+
+            val newShape = newShapeList.toIntArray()
+            printMessage(newShape.joinToString(" X ", "B: "))
+
+            val f = FloatArray(size) { randomFloat() }
+            val A = manager.create(f, shape)
+            val B = NDArray(shape, f)
+
+            val AT = A.transpose()
+            val BT = B.transpose()
+
+            val a = A.reshape(*newShape.toLongArray())
+            val b = B.reshape(*newShape)
+
+            assertNDArrayEquals(a, b)
+            assertNDArrayEquals(a.transpose(), b.transpose())
+
+            val at = AT.reshape(*newShape.toLongArray())
+            val bt = BT.reshape(*newShape)
+
+            assertNDArrayEquals(at, bt)
+            assertNDArrayEquals(at.transpose(), bt.transpose())
+        }
+    }
+
+    @Test
+    fun testMatMulCCCorrectness() {
+        repeat(100) {
+            val m = Random.nextInt(1, 1024)
+            val n = Random.nextInt(1, 1024)
+            val p = Random.nextInt(1, 1024)
+
+            printMessage("A: $m X $n, B: $n X $p")
+
+            val fa = FloatArray(m * n) { randomFloat() }
+            val fb = FloatArray(n * p) { randomFloat() }
+
+            val A = manager.create(fa, m, n)
+            val B = manager.create(fb, n, p)
+            val C = A.dot(B)
+
+            val a = NDArrays.of(arrOf(m, n), fa)
+            val b = NDArrays.of(arrOf(n, p), fb)
+            val c = a.matmul(b)
+
+            assertNDArrayEquals(C, c)
         }
     }
 
@@ -495,89 +578,6 @@ class NDArrayTest {
             assertNDArrayEquals(A.div(bt), C.div(dt))
             assertNDArrayEquals(A.maximum(bt), C.maximum(dt))
             assertNDArrayEquals(A.minimum(bt), C.minimum(dt))
-        }
-    }
-
-    @Test
-    fun testReshapeCorrectness() {
-        // verify matrix
-        repeat(100) {
-            val m = Random.nextInt(1, 1024)
-            val n = Random.nextInt(1, 1024)
-
-            printMessage("Matrix: $m X $n")
-
-            val f = FloatArray(m * n) { randomFloat() }
-
-            val size = m * n
-            val i = randomDivisibleBy(size)
-            val j = size / i
-
-            val A = manager.create(f, m, n)
-            val B = NDArray(intArrayOf(m, n), f)
-
-            val AT = A.transpose()
-            val BT = B.transpose()
-
-            val a = A.reshape(i.toLong(), j.toLong())
-            val b = B.reshape(i, j)
-
-            assertNDArrayEquals(a, b)
-            assertNDArrayEquals(a.transpose(), b.transpose())
-
-            val at = AT.reshape(i.toLong(), j.toLong())
-            val bt = BT.reshape(i, j)
-
-            assertNDArrayEquals(at, bt)
-            assertNDArrayEquals(at.transpose(), bt.transpose())
-        }
-
-        // verify random
-        repeat(100) {
-            val rank = Random.nextInt(1, 5)
-            val shape = IntArray(rank) { Random.nextInt(1, 6) }
-            val size = shape.fold(1, Int::times)
-            printMessage(shape.joinToString(" X ", "A: "))
-
-            val newRank = Random.nextInt(1, 5)
-            val newShapeList = mutableListOf<Int>()
-
-            if (size == 1) {
-                newShapeList.add(1)
-            } else {
-                var remainSize = size
-                while (remainSize > 1) {
-                    if (newShapeList.size == newRank - 1) {
-                        newShapeList.add(remainSize)
-                        break
-                    }
-                    val curtSize = randomDivisibleBy(remainSize)
-                    newShapeList.add(curtSize)
-                    remainSize /= curtSize
-                }
-            }
-
-            val newShape = newShapeList.toIntArray()
-            printMessage(newShape.joinToString(" X ", "B: "))
-
-            val f = FloatArray(size) { randomFloat() }
-            val A = manager.create(f, shape)
-            val B = NDArray(shape, f)
-
-            val AT = A.transpose()
-            val BT = B.transpose()
-
-            val a = A.reshape(*newShape.toLongArray())
-            val b = B.reshape(*newShape)
-
-            assertNDArrayEquals(a, b)
-            assertNDArrayEquals(a.transpose(), b.transpose())
-
-            val at = AT.reshape(*newShape.toLongArray())
-            val bt = BT.reshape(*newShape)
-
-            assertNDArrayEquals(at, bt)
-            assertNDArrayEquals(at.transpose(), bt.transpose())
         }
     }
 }

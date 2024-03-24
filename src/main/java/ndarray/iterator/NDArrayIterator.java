@@ -13,6 +13,7 @@ public class NDArrayIterator implements Iterator<Float> {
     private final NDArray ndArray;
 
     private final int size;
+    private final int offset;
     private final boolean isCContiguous;
 
     private final int[] shape;
@@ -26,7 +27,8 @@ public class NDArrayIterator implements Iterator<Float> {
         this.isCContiguous = ndArray.getContiguous() == Flags.Contiguous.C;
         this.shape = ndArray.getShape();
         this.indices = isCContiguous ? null : new int[shape.length];
-        this.data = ndArray.getData();
+        this.data = ndArray.getData().array();
+        this.offset = ndArray.getData().offset();
     }
 
     @Override
@@ -42,7 +44,7 @@ public class NDArrayIterator implements Iterator<Float> {
         }
 
         if (isCContiguous) {
-            return data[curt++];
+            return data[offset + curt++];
         } else {
             return ndArray.get(calculateIndices(curt++, shape, indices));
         }

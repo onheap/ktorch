@@ -185,4 +185,20 @@ public class ShapeUtil {
         var res = isBroadcastedShapes(arrOf(1, 2, 3), arrOf(2, 3));
         System.out.println(res);
     }
+
+    public static int[] getSubShape(int[] shape, int[] indices) {
+        int newDim = shape.length - indices.length;
+        int[] subShape = new int[newDim];
+        System.arraycopy(shape, indices.length, subShape, 0, newDim);
+        return subShape;
+    }
+
+    public static int[] getSubStrides(int[] strides, int[] indices) {
+        int newDim = strides.length - indices.length;
+        int[] subStrides = new int[newDim];
+
+        System.arraycopy(strides, indices.length, subStrides, 0, newDim);
+
+        return subStrides;
+    }
 }

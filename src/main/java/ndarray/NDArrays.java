@@ -76,27 +76,25 @@ public class NDArrays {
     }
 
     public static NDArray of(int[] shape, Flags.Contiguous contiguous) {
-        return NDArrays.of(
+        return new NDArray(
                 shape,
                 contiguous.calculateStrides(shape),
                 new float[ShapeUtil.getSize(shape)],
+                0,
                 Flags.setContiguous(Flags.ZERO, contiguous));
     }
 
     public static NDArray of(int[] shape, float[] data, Flags.Contiguous contiguous) {
-        return NDArrays.of(
+        return NDArrays.of(shape, data, 0, contiguous);
+    }
+
+    public static NDArray of(int[] shape, float[] data, int offset, Flags.Contiguous contiguous) {
+        return new NDArray(
                 shape,
                 contiguous.calculateStrides(shape),
                 data,
+                offset,
                 Flags.setContiguous(Flags.ZERO, contiguous));
-    }
-
-    public static NDArray of(int[] shape, int[] strides, float[] data) {
-        return NDArrays.of(shape, strides, data, Flags.setContiguous(Flags.ZERO, shape, strides));
-    }
-
-    public static NDArray of(int[] shape, int[] strides, float[] data, byte flags) {
-        return new NDArray(shape, strides, data, flags);
     }
 
     public static NDArray stack(NDArray... ndArrays) {
@@ -114,7 +112,7 @@ public class NDArrays {
             NDArray curt = ndArrays[i];
             assert elementwiseOperable(first, curt);
 
-            System.arraycopy(curt.data, 0, data, i * size, size);
+            System.arraycopy(curt.data, curt.offset, data, i * size, size);
         }
 
         int[] newShape = new int[first.shape.length + 1];

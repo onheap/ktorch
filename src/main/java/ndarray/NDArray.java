@@ -17,10 +17,15 @@ import ndarray.util.PresentUtil;
 import ndarray.util.ShapeUtil;
 
 public class NDArray implements Iterable<Float> {
+
+    public record Data(float[] array, int offset) {}
+
     private static final VectorSpecies<Float> SPECIES = FloatVector.SPECIES_PREFERRED;
     private static final int SPECIES_LEN = SPECIES.length();
 
     final float[] data;
+    final int offset;
+
     final int[] shape;
     final int[] strides;
     final byte flags;
@@ -28,19 +33,21 @@ public class NDArray implements Iterable<Float> {
     public NDArray(int[] shape, float[] data) {
         this.shape = shape;
         this.data = data;
+        this.offset = 0;
         this.strides = Flags.Contiguous.C.calculateStrides(shape);
         this.flags = Flags.setContiguous(Flags.ZERO, Flags.Contiguous.C);
     }
 
-    public NDArray(int[] shape, int[] strides, float[] data, byte flags) {
+    public NDArray(int[] shape, int[] strides, float[] data, int offset, byte flags) {
         this.shape = shape;
         this.data = data;
+        this.offset = offset;
         this.strides = strides;
         this.flags = flags;
     }
 
-    public float[] getData() {
-        return data;
+    public Data getData() {
+        return new Data(data, offset);
     }
 
     public int[] getShape() {
@@ -55,7 +62,7 @@ public class NDArray implements Iterable<Float> {
         return ShapeUtil.getSize(shape);
     }
 
-    public int dim() {
+    public int getDim() {
         return shape.length;
     }
 
@@ -79,11 +86,18 @@ public class NDArray implements Iterable<Float> {
         if (!isScalar()) {
             throw new IllegalArgumentException("Not a scalar");
         }
-        return data[0];
+        return data[offset];
     }
 
     public NDArray transpose() {
-        return NDArrays.of(reverseArray(this.shape), reverseArray(this.strides), this.data);
+        int[] transposedShape = reverseArray(this.shape);
+        int[] transposedStrides = reverseArray(this.strides);
+        return new NDArray(
+                transposedShape,
+                transposedStrides,
+                data,
+                offset,
+                Flags.setContiguous(Flags.ZERO, transposedShape, transposedStrides));
     }
 
     public NDArray matmul(NDArray other) {
@@ -91,7 +105,7 @@ public class NDArray implements Iterable<Float> {
     }
 
     public NDArray sum() {
-        float total = ElementWiseReduceOperator.SUM.elementWiseReduce(data, 0, data.length);
+        float total = ElementWiseReduceOperator.SUM.elementWiseReduce(data, offset, data.length);
         return NDArrays.ofScalar(total);
     }
 
@@ -104,7 +118,7 @@ public class NDArray implements Iterable<Float> {
     }
 
     public NDArray max() {
-        float max = ElementWiseReduceOperator.MAX.elementWiseReduce(data, 0, data.length);
+        float max = ElementWiseReduceOperator.MAX.elementWiseReduce(data, offset, data.length);
         return NDArrays.ofScalar(max);
     }
 
@@ -122,20 +136,20 @@ public class NDArray implements Iterable<Float> {
 
     public NDArray argmax() {
         if (getContiguous() == Flags.Contiguous.C) {
-            int maxIndex = 0;
-            float max = data[0];
-            for (int i = 0; i < data.length; i++) {
+            int maxIndex = offset;
+            float max = data[offset];
+            for (int i = offset; i < offset + getSize(); i++) {
                 if (data[i] > max) {
                     maxIndex = i;
                     max = data[i];
                 }
             }
-            return NDArrays.ofScalar(maxIndex);
+            return NDArrays.ofScalar(maxIndex - offset);
         }
 
         int len = shape.length;
         int[] maxIndices = new int[len];
-        float max = data[0];
+        float max = data[offset];
 
         for (var indices : indices()) {
             float v = get(indices);
@@ -248,7 +262,7 @@ public class NDArray implements Iterable<Float> {
         newShape = ShapeUtil.reshape(shape, newShape);
 
         if (getContiguous() == Flags.Contiguous.C) {
-            return NDArrays.of(newShape, data, Flags.Contiguous.C);
+            return NDArrays.of(newShape, data, offset, Flags.Contiguous.C);
         }
 
         // can we make it non-copying?
@@ -264,11 +278,29 @@ public class NDArray implements Iterable<Float> {
     }
 
     public float get(int[] indices) {
-        return data[getFlatIndex(indices)];
+        return data[offset + getFlatIndex(indices)];
     }
 
     public void set(int[] indices, float v) {
-        data[getFlatIndex(indices)] = v;
+        data[offset + getFlatIndex(indices)] = v;
+    }
+
+    public NDArray getNDArray(int[] indices) {
+        int[] subShape = ShapeUtil.getSubShape(shape, indices);
+        int[] subStrides = ShapeUtil.getSubStrides(strides, indices);
+        int subOffset = offset + getFlatIndex(indices);
+
+        return new NDArray(
+                subShape,
+                subStrides,
+                data,
+                subOffset,
+                Flags.setContiguous(
+                        Flags.ZERO,
+                        getContiguous() == Flags.Contiguous.C
+                                ? Flags.Contiguous.C
+                                : Flags.Contiguous.NOT // Not Contiguous?
+                        ));
     }
 
     public float[] toArray() {
