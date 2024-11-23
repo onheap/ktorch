@@ -3,7 +3,7 @@
 <img src="docs/images/ktorch_logo.png" alt="Eval Logo" width="400" align="right">
 
 ## Intro
-This project serves as an experimental playground for learning particular areas of knowledge using _leaning by doing_ approach. The learning knowledge primary focus is on the following areas:
+This project serves as an experimental playground for learning particular areas of knowledge using _learning by doing_ approach. The learning knowledge primary focus is on the following areas:
 * Machine Learning
 * PyTorch
 * Kotlin
